@@ -191,6 +191,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#111;color:#222;min-heig
 .sched-list-title{
   font-size:10px;text-transform:uppercase;letter-spacing:2px;
   color:#444;font-weight:700;margin-bottom:14px;padding-left:2px;
+  transition:color 0.3s;
+}
+.sched-list-title.flash{color:#FFC600;animation:titleFlash 1.2s ease;}
+@keyframes titleFlash{
+  0%{color:#444;} 20%{color:#FFC600;} 100%{color:#444;}
 }
 
 .sched-list{display:flex;flex-direction:column;gap:10px;}
@@ -611,7 +616,7 @@ table.sched-table tbody td:first-child{text-align:left;padding-left:12px;backgro
         <div class="dc-title" data-i18n="createSchedule">Create Schedule</div>
         <div class="dc-sub" data-i18n="createScheduleSub">Start a new weekly schedule</div>
       </div>
-      <div class="dash-card secondary" onclick="refreshScheduleList()">
+      <div class="dash-card secondary" onclick="goToSchedulesList()">
         <div class="dc-icon">📂</div>
         <div class="dc-title" data-i18n="mySchedules">My Schedules</div>
         <div class="dc-sub" data-i18n="mySchedulesSub">View and open saved schedules</div>
@@ -619,7 +624,7 @@ table.sched-table tbody td:first-child{text-align:left;padding-left:12px;backgro
     </div>
 
     <!-- Schedule list -->
-    <div class="sched-list-title" data-i18n="savedSchedules">Saved Schedules</div>
+    <div class="sched-list-title" id="savedSchedulesTitle" data-i18n="savedSchedules">Saved Schedules</div>
     <div id="ghStatus" class="gh-status" style="margin-bottom:12px;display:none"></div>
     <div class="sched-list" id="schedList">
       <div class="dash-empty"><div class="de-icon">📭</div><p data-i18n="noSchedules">No schedules yet. Create your first one!</p></div>
@@ -1018,6 +1023,18 @@ function saveGhToken() {
 }
 
 /* ── Schedule List ── */
+function goToSchedulesList() {
+  refreshScheduleList();
+  const title = document.getElementById('savedSchedulesTitle');
+  const list  = document.getElementById('schedList');
+  if (list) list.scrollIntoView({ behavior:'smooth', block:'start' });
+  if (title) {
+    title.classList.remove('flash');
+    void title.offsetWidth; // restart animation
+    title.classList.add('flash');
+  }
+}
+
 async function refreshScheduleList() {
   const listEl  = document.getElementById('schedList');
   const statusEl = document.getElementById('ghStatus');
@@ -1034,15 +1051,17 @@ async function refreshScheduleList() {
   statusEl.innerHTML = '⏳ Loading from GitHub...';
 
   try {
-    const res = await ghAPI(`contents/schedules`, 'GET');
-    if (!res.ok && res.status === 404) {
-      // folder doesn't exist yet
+    const res = await ghAPI('contents/schedules', 'GET');
+    if (res.status === 404) {
+      // folder doesn't exist yet — no schedules saved to GitHub
       statusEl.innerHTML = '✅ Connected to GitHub';
       statusEl.className = 'gh-status ok';
       listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
       return;
     }
+    if (!res.ok) throw new Error('GitHub API error: ' + res.status);
     const files = await res.json();
+    if (!Array.isArray(files)) throw new Error('Unexpected response from GitHub');
     statusEl.innerHTML = '✅ Synced with GitHub';
     statusEl.className = 'gh-status ok';
     renderScheduleList(listEl, files.filter(f => f.name.endsWith('.json')));
@@ -1220,8 +1239,8 @@ function deleteLocalSched(id) {
     okLabel:'Delete', okColor:'#cc2200',
     onOk: () => {
       localStorage.removeItem('sw_sched_' + id);
-      refreshScheduleList();
       showToast('Schedule deleted.');
+      refreshScheduleList();
     }
   });
 }
@@ -1233,17 +1252,50 @@ function deleteGhSched(filename, sha) {
     sub:'It will be permanently removed from GitHub.',
     okLabel:'Delete', okColor:'#cc2200',
     onOk: async () => {
+      showToast('Deleting…');
       try {
-        await ghAPI('contents/schedules/'+filename, 'DELETE', {
+        // Re-fetch the latest sha right before deleting, in case it changed
+        let useSha = sha;
+        try {
+          const fresh = await ghAPI('contents/schedules/'+filename, 'GET');
+          if (fresh.ok) {
+            const freshJson = await fresh.json();
+            if (freshJson && freshJson.sha) useSha = freshJson.sha;
+          }
+        } catch(_) { /* fall back to original sha */ }
+
+        const res = await ghAPI('contents/schedules/'+filename, 'DELETE', {
           message: 'Delete schedule: '+filename,
-          sha: sha,
+          sha: useSha,
           branch: GH_BRANCH
         });
-        showToast('Schedule deleted from GitHub.');
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.message || ('GitHub error '+res.status));
+        }
+
+        // Also clear any local cached copy with a matching title
+        Object.keys(localStorage).filter(k => k.startsWith('sw_sched_')).forEach(k => {
+          try {
+            const d = JSON.parse(localStorage.getItem(k));
+            if (sanitizeBase(d.title) === sanitizeBase(filename.replace('.json',''))) {
+              localStorage.removeItem(k);
+            }
+          } catch(_) {}
+        });
+
+        showToast('Schedule deleted from GitHub ✓');
         refreshScheduleList();
-      } catch(e) { showToast('Failed to delete from GitHub.'); }
+      } catch(e) {
+        showToast('Delete failed: ' + (e.message || 'unknown error'));
+      }
     }
   });
+}
+
+function sanitizeBase(s) {
+  return String(s||'').replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase();
 }
 
 /* ══════════════════════════════════
