@@ -3,1049 +3,1317 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subway — Weekly Schedule Maker</title>
+<title>Subway — Schedule Maker</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
+/* ══════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#111;color:#222;min-height:100vh;overflow-x:hidden;}
 
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #ebebeb;
-  color: #222;
-  min-height: 100vh;
+/* ══════════════════════════════════════
+   SPLASH / INTRO ANIMATION
+══════════════════════════════════════ */
+#splash{
+  position:fixed;inset:0;background:#111;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  animation:splashFade 0.5s ease 3.2s forwards;
+}
+@keyframes splashFade{to{opacity:0;pointer-events:none;visibility:hidden;}}
+
+.splash-logo-wrap{
+  position:relative;display:flex;align-items:center;justify-content:center;
 }
 
-/* ─── TOP BAR ─── */
-.topbar {
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 28px;
-  height: 72px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
-  border-bottom: 3px solid #FFC600;
+/* Glow ring */
+.splash-ring{
+  position:absolute;width:260px;height:260px;border-radius:50%;
+  border:3px solid transparent;
+  background:conic-gradient(from 0deg,#FFC600,#008C15,#FFC600) border-box;
+  -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:ringSpinIn 1s ease 0.2s both;
+  opacity:0;
+}
+@keyframes ringSpinIn{
+  0%{opacity:0;transform:scale(0.5) rotate(-180deg);}
+  100%{opacity:1;transform:scale(1) rotate(0deg);}
 }
 
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+/* Logo image */
+.splash-img{
+  width:220px;height:auto;
+  animation:logoPopIn 0.7s cubic-bezier(0.175,0.885,0.32,1.275) 0.5s both;
+  filter:drop-shadow(0 0 40px rgba(255,198,0,0.6));
+}
+@keyframes logoPopIn{
+  0%{opacity:0;transform:scale(0.3);}
+  60%{transform:scale(1.08);}
+  100%{opacity:1;transform:scale(1);}
 }
 
-/* SVG logo inline */
-.subway-svg-logo {
-  height: 38px;
-  width: auto;
+/* Tagline */
+.splash-tagline{
+  margin-top:32px;font-size:11px;letter-spacing:4px;text-transform:uppercase;
+  color:#555;font-weight:600;
+  animation:taglineIn 0.6s ease 1.3s both;
+}
+@keyframes taglineIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* Yellow bar sweep */
+.splash-bar{
+  position:absolute;bottom:0;left:0;height:4px;
+  background:linear-gradient(90deg,#FFC600,#008C15);
+  animation:barGrow 1s ease 1.6s both;
+  width:0;
+}
+@keyframes barGrow{to{width:100%;}}
+
+/* Dots loader */
+.splash-dots{
+  margin-top:24px;display:flex;gap:8px;
+  animation:taglineIn 0.4s ease 1.8s both;
+}
+.splash-dots span{
+  width:8px;height:8px;border-radius:50%;background:#333;
+  animation:dotPulse 0.8s ease infinite;
+}
+.splash-dots span:nth-child(1){animation-delay:2s;background:#FFC600;}
+.splash-dots span:nth-child(2){animation-delay:2.15s;background:#888;}
+.splash-dots span:nth-child(3){animation-delay:2.3s;background:#008C15;}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:0.4;}50%{transform:scale(1.4);opacity:1;}}
+
+/* ══════════════════════════════════════
+   APP WRAPPER (hidden until splash done)
+══════════════════════════════════════ */
+#app{
+  opacity:0;transition:opacity 0.5s ease;min-height:100vh;
+  background:#ebebeb;
+}
+#app.visible{opacity:1;}
+
+/* ══════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════ */
+#loginScreen{
+  min-height:100vh;background:#111;display:flex;
+  align-items:center;justify-content:center;
+  animation:screenIn 0.4s ease;
+}
+@keyframes screenIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+.login-card{
+  background:#1a1a1a;border-radius:18px;padding:40px 36px;
+  width:360px;max-width:94vw;
+  box-shadow:0 24px 64px rgba(0,0,0,0.5);
+  border:1px solid #2a2a2a;
 }
 
-.topbar-divider {
-  width: 1px;
-  height: 28px;
-  background: #444;
+.login-logo{width:160px;display:block;margin:0 auto 28px;}
+
+.login-title{
+  text-align:center;font-size:13px;font-weight:700;
+  text-transform:uppercase;letter-spacing:2px;
+  color:#555;margin-bottom:28px;
 }
 
-.topbar-subtitle {
-  font-size: 11px;
-  color: #aaa;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-weight: 400;
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:11px;color:#666;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase;}
+.login-field input{
+  width:100%;padding:12px 14px;background:#222;border:1.5px solid #333;
+  border-radius:8px;font-size:14px;color:#fff;outline:none;
+  font-family:inherit;transition:border 0.15s;
+}
+.login-field input:focus{border-color:#FFC600;}
+
+.login-btn{
+  width:100%;padding:13px;background:#FFC600;color:#111;border:none;
+  border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;
+  text-transform:uppercase;letter-spacing:1px;margin-top:6px;
+  transition:all 0.15s;
+}
+.login-btn:hover{background:#e6b200;transform:translateY(-1px);}
+.login-btn:active{transform:translateY(0);}
+
+.login-error{
+  background:#3a0000;color:#ff6b6b;border:1px solid #660000;
+  border-radius:6px;padding:10px 14px;font-size:12px;
+  text-align:center;margin-top:14px;display:none;font-weight:600;
 }
 
-.topbar-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.login-footer{text-align:center;margin-top:20px;font-size:10px;color:#333;letter-spacing:1px;}
+
+/* ══════════════════════════════════════
+   DASHBOARD (schedule list screen)
+══════════════════════════════════════ */
+#dashScreen{display:none;min-height:100vh;background:#111;}
+
+.dash-topbar{
+  background:#111;border-bottom:3px solid #FFC600;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:72px;position:sticky;top:0;z-index:100;
+}
+.dash-topbar-left{display:flex;align-items:center;gap:16px;}
+.dash-topbar-right{display:flex;align-items:center;gap:10px;}
+
+.dash-greeting{font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;}
+.dash-greeting strong{color:#FFC600;font-size:13px;}
+
+.dash-body{
+  max-width:900px;margin:0 auto;padding:40px 24px;
 }
 
-.btn {
-  padding: 8px 18px;
-  border-radius: 6px;
-  border: none;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  transition: all 0.15s;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+.dash-welcome{
+  text-align:center;margin-bottom:40px;
+}
+.dash-welcome h1{font-size:28px;font-weight:900;color:#fff;margin-bottom:6px;}
+.dash-welcome p{font-size:13px;color:#555;letter-spacing:0.5px;}
+
+.dash-actions{
+  display:flex;gap:16px;justify-content:center;margin-bottom:44px;flex-wrap:wrap;
 }
 
-.btn-green { background: #008C15; color: #fff; }
-.btn-green:hover { background: #006b10; }
+.dash-card{
+  background:#1a1a1a;border:1.5px solid #2a2a2a;border-radius:14px;
+  padding:28px 32px;width:260px;text-align:center;cursor:pointer;
+  transition:all 0.18s;
+}
+.dash-card:hover{border-color:#FFC600;transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,0.3);}
+.dash-card .dc-icon{font-size:36px;margin-bottom:12px;}
+.dash-card .dc-title{font-size:15px;font-weight:800;color:#fff;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+.dash-card .dc-sub{font-size:11px;color:#555;}
+.dash-card.primary{border-color:#FFC600;background:#1f1c00;}
+.dash-card.primary .dc-title{color:#FFC600;}
+.dash-card.secondary{border-color:#008C15;background:#001a05;}
+.dash-card.secondary .dc-title{color:#66cc66;}
 
-.btn-yellow { background: #FFC600; color: #111; }
-.btn-yellow:hover { background: #e6b200; }
-
-.btn-outline { background: transparent; color: #ccc; border: 1px solid #555; }
-.btn-outline:hover { background: #2a2a2a; }
-
-.btn-red { background: #cc2200; color: #fff; }
-.btn-red:hover { background: #aa1a00; }
-
-/* ─── LAYOUT ─── */
-.main-wrap {
-  display: flex;
-  min-height: calc(100vh - 64px);
+/* Schedule list */
+.sched-list-title{
+  font-size:10px;text-transform:uppercase;letter-spacing:2px;
+  color:#444;font-weight:700;margin-bottom:14px;padding-left:2px;
 }
 
-/* ─── SIDEBAR ─── */
-.sidebar {
-  width: 272px;
-  min-width: 272px;
-  background: #fff;
-  border-right: 1px solid #ddd;
-  padding: 18px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  overflow-y: auto;
+.sched-list{display:flex;flex-direction:column;gap:10px;}
+.sched-item{
+  background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;transition:all 0.15s;
 }
-
-.sidebar-section-title {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #bbb;
-  font-weight: 700;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.sched-item:hover{border-color:#FFC600;background:#1f1c00;}
+.sched-item-left{display:flex;flex-direction:column;gap:3px;}
+.sched-item-title{font-size:14px;font-weight:700;color:#fff;}
+.sched-item-meta{font-size:11px;color:#555;}
+.sched-item-right{display:flex;gap:8px;align-items:center;}
+.sched-item-badge{
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+  padding:3px 9px;border-radius:20px;background:#222;color:#666;border:1px solid #333;
 }
-
-.sidebar-section-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #eee;
+.sched-del-btn{
+  background:none;border:none;color:#444;font-size:18px;cursor:pointer;
+  padding:0 4px;transition:color 0.1s;line-height:1;
 }
+.sched-del-btn:hover{color:#cc2200;}
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+.dash-empty{
+  text-align:center;padding:48px 20px;color:#333;
 }
+.dash-empty .de-icon{font-size:40px;margin-bottom:10px;}
+.dash-empty p{font-size:13px;color:#444;}
 
-.form-group label {
-  font-size: 11px;
-  color: #999;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+/* ══════════════════════════════════════
+   MODAL — Create Schedule
+══════════════════════════════════════ */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:5000;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
 }
-
-.form-group input,
-.form-group select {
-  padding: 8px 10px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 13px;
-  outline: none;
-  transition: border 0.15s;
-  background: #fafafa;
-  font-family: inherit;
+.modal-bg.open{display:flex;}
+.modal-box{
+  background:#1a1a1a;border-radius:16px;padding:32px;
+  width:400px;max-width:94vw;border:1px solid #333;
+  box-shadow:0 24px 64px rgba(0,0,0,0.5);
+  animation:swModalIn 0.18s ease;
 }
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #008C15;
-  background: #fff;
+.modal-box h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:6px;}
+.modal-box p{font-size:12px;color:#555;margin-bottom:20px;}
+.modal-field{margin-bottom:16px;}
+.modal-field label{display:block;font-size:11px;color:#666;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase;}
+.modal-field input{
+  width:100%;padding:11px 14px;background:#222;border:1.5px solid #333;
+  border-radius:8px;font-size:14px;color:#fff;outline:none;font-family:inherit;transition:border 0.15s;
 }
+.modal-field input:focus{border-color:#FFC600;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
 
-/* Employee list */
-.employee-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 260px;
-  overflow-y: auto;
+/* ══════════════════════════════════════
+   SCHEDULE BUILDER SCREEN
+══════════════════════════════════════ */
+#builderScreen{display:none;min-height:100vh;background:#ebebeb;}
+
+/* Top bar */
+.topbar{
+  background:#111;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;height:68px;position:sticky;top:0;z-index:100;
+  box-shadow:0 3px 12px rgba(0,0,0,0.4);border-bottom:3px solid #FFC600;
 }
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.topbar-divider{width:1px;height:28px;background:#333;}
+.topbar-subtitle{font-size:10px;color:#666;letter-spacing:2px;text-transform:uppercase;}
+.topbar-schedtitle{font-size:13px;color:#FFC600;font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
 
-.employee-chip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f5f5f5;
-  border-radius: 7px;
-  padding: 7px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #eee;
-  transition: border-color 0.1s;
+/* Buttons */
+.btn{
+  padding:8px 16px;border-radius:6px;border:none;font-size:11px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:all 0.15s;letter-spacing:0.5px;text-transform:uppercase;
 }
+.btn-green{background:#008C15;color:#fff;}
+.btn-green:hover{background:#006b10;}
+.btn-yellow{background:#FFC600;color:#111;}
+.btn-yellow:hover{background:#e6b200;}
+.btn-outline{background:transparent;color:#888;border:1px solid #444;}
+.btn-outline:hover{background:#1a1a1a;color:#ccc;}
+.btn-ghost{background:transparent;color:#555;border:1px solid #2a2a2a;}
+.btn-ghost:hover{border-color:#555;color:#888;}
 
-.employee-chip:hover { border-color: #ccc; }
+/* Layout */
+.main-wrap{display:flex;min-height:calc(100vh - 68px);}
 
-.role-badge {
-  font-size: 9px;
-  padding: 2px 7px;
-  border-radius: 20px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+/* Sidebar */
+.sidebar{
+  width:256px;min-width:256px;background:#fff;
+  border-right:1px solid #ddd;padding:16px 13px;
+  display:flex;flex-direction:column;gap:14px;overflow-y:auto;
 }
-
-.role-manager { background: #FFF8DC; color: #b38600; border: 1px solid #FFC600; }
-.role-full    { background: #e0f5e0; color: #2a8a2a; border: 1px solid #66bb66; }
-.role-part    { background: #ddeeff; color: #3366bb; border: 1px solid #88aaee; }
-.role-training{ background: #ffeedd; color: #cc6622; border: 1px solid #ffaa77; }
-
-.chip-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.sidebar-section-title{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.5px;
+  color:#bbb;font-weight:700;margin-bottom:7px;
+  display:flex;align-items:center;gap:6px;
 }
-
-.chip-del {
-  background: none;
-  border: none;
-  color: #cc0000;
-  font-size: 17px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 2px;
-  opacity: 0.5;
-  transition: opacity 0.1s;
+.sidebar-section-title::after{content:'';flex:1;height:1px;background:#eee;}
+.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;}
+.form-group label{font-size:11px;color:#999;font-weight:600;letter-spacing:0.3px;}
+.form-group input,.form-group select{
+  padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:6px;
+  font-size:13px;outline:none;transition:border 0.15s;background:#fafafa;font-family:inherit;
 }
-.chip-del:hover { opacity: 1; }
+.form-group input:focus,.form-group select:focus{border-color:#008C15;background:#fff;}
 
-/* Add employee */
-.add-emp-form {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 12px;
-  background: #f8f8f8;
-  border-radius: 8px;
-  border: 1.5px dashed #ddd;
-  margin-top: 6px;
+.employee-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
+.employee-chip{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#f5f5f5;border-radius:7px;padding:6px 10px;
+  font-size:13px;font-weight:600;border:1px solid #eee;
 }
+.role-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.role-manager{background:#FFF8DC;color:#b38600;border:1px solid #FFC600;}
+.role-full{background:#e0f5e0;color:#2a8a2a;border:1px solid #66bb66;}
+.role-part{background:#ddeeff;color:#3366bb;border:1px solid #88aaee;}
+.role-training{background:#ffeedd;color:#cc6622;border:1px solid #ffaa77;}
+.chip-right{display:flex;align-items:center;gap:6px;}
+.chip-del{background:none;border:none;color:#cc0000;font-size:16px;cursor:pointer;opacity:0.4;transition:opacity 0.1s;}
+.chip-del:hover{opacity:1;}
 
-.add-emp-form input,
-.add-emp-form select {
-  padding: 8px 10px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 13px;
-  background: #fff;
-  font-family: inherit;
-  outline: none;
+.add-emp-form{
+  display:flex;flex-direction:column;gap:6px;padding:11px;
+  background:#f8f8f8;border-radius:8px;border:1.5px dashed #ddd;margin-top:5px;
 }
-
-.add-emp-form input:focus,
-.add-emp-form select:focus {
-  border-color: #008C15;
+.add-emp-form input,.add-emp-form select{
+  padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:6px;
+  font-size:13px;background:#fff;font-family:inherit;outline:none;
 }
+.add-emp-form input:focus,.add-emp-form select:focus{border-color:#008C15;}
 
-/* Quick Shifts */
-.shift-preset {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1.5px solid #eee;
-  transition: all 0.12s;
-  background: #fafafa;
-  margin-bottom: 4px;
+hr.divider{border:none;border-top:1px solid #eee;}
+
+.notes-textarea{
+  width:100%;height:80px;padding:9px 11px;border:1.5px solid #e0e0e0;
+  border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;
+  outline:none;background:#fafafa;line-height:1.5;
 }
+.notes-textarea:focus{border-color:#008C15;background:#fff;}
 
-.shift-preset:hover {
-  border-color: #008C15;
-  background: #edfaed;
+/* Save indicator */
+.save-indicator{
+  display:flex;align-items:center;gap:6px;font-size:11px;
+  color:#555;padding:0 4px;
 }
+.save-dot{width:7px;height:7px;border-radius:50%;background:#666;transition:background 0.3s;}
+.save-dot.saving{background:#FFC600;animation:savePulse 0.6s ease infinite;}
+.save-dot.saved{background:#008C15;}
+.save-dot.error{background:#cc2200;}
+@keyframes savePulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
-.shift-preset .ps-name { font-weight: 700; font-size: 13px; }
-.shift-preset .ps-label { color: #888; font-size: 11px; }
+/* Content */
+.content{flex:1;padding:20px;overflow-x:auto;}
+.empty-state{text-align:center;padding:60px 20px;color:#bbb;}
+.empty-state .es-icon{font-size:44px;margin-bottom:12px;}
+.empty-state h3{font-size:15px;color:#999;margin-bottom:6px;}
+.empty-state p{font-size:12px;}
 
-.shift-dot {
-  width: 9px; height: 9px;
-  border-radius: 2px;
-  margin-right: 7px;
-  flex-shrink: 0;
-}
-
-.tip-box {
-  background: #fffbea;
-  border: 1px solid #FFC600;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #7a5c00;
-  line-height: 1.5;
-}
-
-hr.divider {
-  border: none;
-  border-top: 1px solid #eee;
-}
-
-/* ─── CONTENT ─── */
-.content {
-  flex: 1;
-  padding: 22px;
-  overflow-x: auto;
-}
-
-/* ─── EMPTY STATE ─── */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #bbb;
-  display: none;
-}
-
-.empty-state .es-icon { font-size: 48px; margin-bottom: 12px; }
-.empty-state h3 { font-size: 16px; color: #999; margin-bottom: 6px; }
-.empty-state p { font-size: 13px; }
-
-/* ─── SCHEDULE WRAP ─── */
-.schedule-wrap {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-  overflow: hidden;
-  min-width: 860px;
+/* Schedule wrap */
+.schedule-wrap{
+  background:#fff;border-radius:10px;
+  box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;min-width:860px;
 }
 
 /* Schedule header */
-.sched-head {
-  background: #111;
-  padding: 0;
-  display: flex;
-  align-items: stretch;
-}
-
-.sched-head-yellow {
-  background: #FFC600;
-  width: 8px;
-  flex-shrink: 0;
-}
-
-.sched-head-green {
-  background: #008C15;
-  width: 8px;
-  flex-shrink: 0;
-}
-
-.sched-head-inner {
-  flex: 1;
-  padding: 16px 22px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sched-head-title {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sched-head-title h2 {
-  font-size: 18px;
-  font-weight: 900;
-  color: #FFC600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.sched-head-title .week-line {
-  font-size: 11px;
-  color: #aaa;
-  letter-spacing: 0.8px;
-}
-
-/* Inline SVG logo in header */
-.head-logo svg {
-  height: 30px;
-  width: auto;
-}
-
-.sched-head-right {
-  text-align: right;
-}
-
-.sched-head-right .mgr-label {
-  font-size: 10px;
-  color: #aaa;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.sched-head-right .mgr-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  margin-top: 2px;
-}
-
-.sched-head-right .store-name {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 2px;
-}
+.sched-head{background:#111;padding:0;display:flex;align-items:stretch;}
+.sched-head-yellow{background:#FFC600;width:7px;flex-shrink:0;}
+.sched-head-green{background:#008C15;width:7px;flex-shrink:0;}
+.sched-head-inner{flex:1;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.sched-head-title h2{font-size:17px;font-weight:900;color:#FFC600;letter-spacing:1px;text-transform:uppercase;}
+.sched-head-title .week-line{font-size:11px;color:#aaa;letter-spacing:0.8px;margin-top:2px;}
+.sched-head-right{text-align:right;}
+.sched-head-right .mgr-label{font-size:10px;color:#aaa;letter-spacing:1px;text-transform:uppercase;}
+.sched-head-right .mgr-name{font-size:14px;font-weight:700;color:#fff;margin-top:2px;}
+.sched-head-right .store-name{font-size:11px;color:#aaa;margin-top:1px;}
 
 /* Table */
-table.sched-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+table.sched-table{width:100%;border-collapse:collapse;font-size:14px;}
+table.sched-table thead tr{background:#008C15;}
+table.sched-table thead th{
+  color:#fff;font-weight:700;padding:11px 7px;text-align:center;
+  font-size:11px;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.12);text-transform:uppercase;
 }
-
-table.sched-table thead tr {
-  background: #008C15;
-}
-
-table.sched-table thead th {
-  color: #fff;
-  font-weight: 700;
-  padding: 10px 6px;
-  text-align: center;
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  border-right: 1px solid rgba(255,255,255,0.12);
-  text-transform: uppercase;
-}
-
-table.sched-table thead th:first-child {
-  text-align: left;
-  padding-left: 16px;
-  width: 136px;
-  background: #006b10;
-  font-size: 10px;
-  letter-spacing: 1px;
-}
-
-table.sched-table thead th .th-day { display: block; font-size: 12px; font-weight: 800; }
-table.sched-table thead th .th-date { display: block; font-size: 10px; font-weight: 400; opacity: 0.8; margin-top: 1px; }
-
-table.sched-table tbody tr {
-  border-bottom: 1px solid #eeeeee;
-  transition: background 0.1s;
-}
-
-table.sched-table tbody tr:nth-child(even) { background: #fafffe; }
-table.sched-table tbody tr:hover { background: #f0fff4; }
-
-table.sched-table tbody td {
-  padding: 7px 5px;
-  text-align: center;
-  border-right: 1px solid #eee;
-  vertical-align: middle;
-  min-width: 94px;
-}
-
-table.sched-table tbody td:first-child {
-  text-align: left;
-  padding-left: 14px;
-  background: #f8fdf8 !important;
-  border-right: 2px solid #d4ead4;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.emp-name-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.emp-role-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  opacity: 0.55;
-}
+table.sched-table thead th:first-child{text-align:left;padding-left:14px;width:145px;background:#006b10;font-size:10px;letter-spacing:1px;}
+table.sched-table thead th .th-day{display:block;font-size:12px;font-weight:800;}
+table.sched-table thead th .th-date{display:block;font-size:10px;font-weight:400;opacity:0.85;margin-top:2px;}
+table.sched-table tbody tr{border-bottom:1px solid #e8e8e8;transition:background 0.1s;}
+table.sched-table tbody tr:nth-child(even){background:#fafffe;}
+table.sched-table tbody tr:hover{background:#f0fff4;}
+table.sched-table tbody td{padding:9px 6px;text-align:center;border-right:1px solid #eee;vertical-align:middle;min-width:106px;}
+table.sched-table tbody td:first-child{text-align:left;padding-left:12px;background:#f8fdf8 !important;border-right:2px solid #d4ead4;font-weight:700;font-size:13px;}
+.emp-name-wrap{display:flex;flex-direction:column;gap:1px;}
+.emp-role-label{font-size:9px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;opacity:0.5;}
 
 /* Shift inputs */
-.shift-input {
-  width: 100%;
-  min-width: 80px;
-  padding: 5px 5px;
-  border: 1.5px solid transparent;
-  border-radius: 5px;
-  font-size: 12px;
-  text-align: center;
-  background: transparent;
-  outline: none;
-  font-family: inherit;
-  cursor: text;
-  transition: all 0.12s;
-  font-weight: 500;
+.shift-input{
+  width:100%;min-width:88px;padding:7px 5px;border:1.5px solid transparent;
+  border-radius:5px;font-size:13px;text-align:center;background:transparent;
+  outline:none;font-family:inherit;cursor:text;transition:all 0.12s;font-weight:600;
 }
+.shift-input::placeholder{color:#ccc;font-weight:400;}
+.shift-input:hover{background:#f0fff4;border-color:#008C15;}
+.shift-input:focus{background:#fff;border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,0.1);}
+.sh-open{background:#e6f7e6;color:#2a882a;border-color:#a3d9a3 !important;}
+.sh-off{background:#f4f4f4;color:#aaa;border-color:#e0e0e0 !important;}
+.sh-training{background:#fff8e1;color:#cc9900;border-color:#FFE082 !important;}
+.sh-close{background:#fff0e6;color:#cc5522;border-color:#ffbb99 !important;}
+.sh-mid{background:#e6f0ff;color:#3366cc;border-color:#99bbff !important;}
+.sh-x{background:#f5f5f5;color:#ccc;border-color:#e5e5e5 !important;font-weight:700;}
 
-.shift-input::placeholder { color: #ccc; font-weight: 400; }
-
-.shift-input:hover {
-  background: #f0fff4;
-  border-color: #008C15;
-}
-
-.shift-input:focus {
-  background: #fff;
-  border-color: #008C15;
-  box-shadow: 0 0 0 3px rgba(0,140,21,0.1);
-}
-
-/* Color classes */
-.sh-open     { background: #e6f7e6; color: #2a882a; border-color: #a3d9a3 !important; }
-.sh-off      { background: #f4f4f4; color: #aaa;    border-color: #e0e0e0 !important; }
-.sh-training { background: #fff8e1; color: #cc9900; border-color: #FFE082 !important; }
-.sh-close    { background: #fff0e6; color: #cc5522; border-color: #ffbb99 !important; }
-.sh-mid      { background: #e6f0ff; color: #3366cc; border-color: #99bbff !important; }
-.sh-x        { background: #f5f5f5; color: #ccc;    border-color: #e5e5e5 !important; font-weight: 700; }
+/* Print notes */
+.print-notes{display:none;padding:12px 18px;border-top:2px solid #eee;background:#fffdf0;}
+.print-notes-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:4px;}
+.print-notes-text{font-size:12px;color:#333;line-height:1.6;white-space:pre-wrap;}
 
 /* Totals bar */
-.totals-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  background: #111;
-  padding: 13px 24px;
-  border-top: 3px solid #FFC600;
+.totals-bar{
+  display:flex;align-items:center;justify-content:space-around;
+  background:#111;padding:11px 20px;border-top:3px solid #FFC600;
 }
-
-.total-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.total-stat .t-val {
-  font-size: 22px;
-  font-weight: 900;
-  color: #FFC600;
-  line-height: 1;
-}
-
-.total-stat .t-lbl {
-  font-size: 9px;
-  color: #999;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.totals-logo {
-  display: flex;
-  align-items: center;
-}
+.total-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.total-stat .t-val{font-size:20px;font-weight:900;color:#FFC600;line-height:1;}
+.total-stat .t-lbl{font-size:9px;color:#999;letter-spacing:1px;text-transform:uppercase;}
 
 /* Legend */
-.legend {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 10px 20px;
-  background: #f8f8f8;
-  border-top: 1px solid #eee;
-  font-size: 11px;
-  color: #777;
+.legend{
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  padding:9px 18px;background:#f8f8f8;border-top:1px solid #eee;
+  font-size:11px;color:#777;
 }
-
-.leg-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.leg-dot {
-  width: 10px; height: 10px;
-  border-radius: 3px;
-}
-
-.leg-hint {
-  margin-left: auto;
-  font-size: 10px;
-  color: #ccc;
-  font-style: italic;
-}
+.leg-item{display:flex;align-items:center;gap:5px;}
+.leg-dot{width:10px;height:10px;border-radius:3px;}
+.leg-hint{margin-left:auto;font-size:10px;color:#ccc;font-style:italic;}
 
 /* Context menu */
-.ctx-menu {
-  position: fixed;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 9px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.16);
-  min-width: 190px;
-  z-index: 9999;
-  display: none;
-  overflow: hidden;
+.ctx-menu{
+  position:fixed;background:#fff;border:1px solid #ddd;border-radius:9px;
+  box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:192px;
+  z-index:9999;display:none;overflow:hidden;
 }
-
-.ctx-menu.visible { display: block; }
-
-.ctx-menu-head {
-  padding: 8px 14px 7px;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #999;
-  border-bottom: 1px solid #f0f0f0;
-  font-weight: 700;
-  background: #fafafa;
+.ctx-menu.visible{display:block;}
+.ctx-menu-head{
+  padding:7px 13px 6px;font-size:9px;text-transform:uppercase;
+  letter-spacing:1.5px;color:#999;border-bottom:1px solid #f0f0f0;font-weight:700;background:#fafafa;
 }
-
-.ctx-item {
-  padding: 9px 14px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #333;
-  transition: background 0.08s;
-  font-weight: 500;
+.ctx-item{
+  padding:9px 13px;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:9px;color:#333;transition:background 0.08s;font-weight:500;
 }
+.ctx-item:hover{background:#f0fff4;}
+.ctx-item.ctx-danger{color:#cc2200;}
+.ctx-item.ctx-danger:hover{background:#fff5f5;}
 
-.ctx-item:hover { background: #f0fff4; }
-.ctx-item.ctx-danger { color: #cc2200; }
-.ctx-item.ctx-danger:hover { background: #fff5f5; }
-
-/* Notif toast */
-.toast {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: #111;
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  border-left: 4px solid #008C15;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.25s;
-  z-index: 9999;
-  pointer-events: none;
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;background:#111;color:#fff;
+  padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  border-left:4px solid #008C15;opacity:0;transform:translateY(10px);
+  transition:all 0.25s;z-index:9999;pointer-events:none;
 }
+.toast.show{opacity:1;transform:translateY(0);}
 
-.toast.show { opacity: 1; transform: translateY(0); }
+/* Subway modal (confirmations) */
+.sw-modal-bg{
+  position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);
+}
+.sw-modal-bg.open{display:flex;}
+.sw-modal-box{
+  background:#fff;border-radius:16px;overflow:hidden;width:360px;max-width:94vw;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:swModalIn 0.18s ease;
+}
+@keyframes swModalIn{from{transform:scale(0.92) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.sw-modal-top-bar{height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);}
+.sw-modal-head{background:#f9f9f9;padding:16px 20px 13px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #eee;}
+.sw-modal-body{padding:24px 24px 8px;text-align:center;}
+.sw-modal-icon{font-size:36px;margin-bottom:8px;}
+.sw-modal-msg{font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:3px;}
+.sw-modal-sub{font-size:12px;color:#999;}
+.sw-modal-btns{padding:14px 20px 20px;display:flex;gap:10px;justify-content:flex-end;}
+.sw-modal-bot-bar{height:4px;background:linear-gradient(90deg,#008C15 50%,#FFC600 50%);}
 
-/* ─── PRINT ─── */
-@media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: #fff !important; }
-  .topbar, .sidebar, .totals-bar, .legend, .toast, .ctx-menu { display: none !important; }
-  .main-wrap { display: block !important; }
-  .content { padding: 0 !important; }
-  .schedule-wrap {
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-  table.sched-table { font-size: 9.5px !important; }
-  table.sched-table thead th { padding: 7px 4px !important; font-size: 9px !important; }
-  table.sched-table tbody td { padding: 5px 3px !important; min-width: 0 !important; }
-  .shift-input { border: none !important; box-shadow: none !important; font-size: 9.5px !important; padding: 2px !important; min-width: 0 !important; }
-  .sh-open,.sh-off,.sh-training,.sh-close,.sh-mid,.sh-x { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sched-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  table.sched-table thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  @page { size: landscape; margin: 0.8cm; }
+/* GitHub config panel */
+.gh-config{
+  background:#fff3cd;border:1px solid #FFC600;border-radius:8px;
+  padding:12px 14px;font-size:12px;color:#7a5c00;margin-bottom:14px;
+  line-height:1.6;
+}
+.gh-status{
+  display:flex;align-items:center;gap:7px;font-size:11px;
+  padding:6px 10px;border-radius:6px;background:#f0f0f0;color:#666;
+}
+.gh-status.ok{background:#e6f7e6;color:#2a882a;}
+.gh-status.err{background:#fff0e6;color:#cc5522;}
+
+/* ══════════════════════════════════════
+   PRINT STYLES
+══════════════════════════════════════ */
+@media print{
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  body{background:#fff !important;}
+  #splash,#loginScreen,#dashScreen{display:none !important;}
+  #builderScreen{display:block !important;}
+  .topbar,.sidebar,.totals-bar,.legend,.toast,.ctx-menu,
+  .sw-modal-bg,.empty-state{display:none !important;}
+  .main-wrap{display:block !important;}
+  .content{padding:0 !important;}
+  .schedule-wrap{box-shadow:none !important;border-radius:0 !important;min-width:0 !important;width:100% !important;}
+  .sched-head{background:#000 !important;-webkit-print-color-adjust:exact;}
+  .sched-head-yellow,.sched-head-green{background:#000 !important;width:4px !important;}
+  .sched-head-title h2{font-size:15px !important;color:#fff !important;}
+  .sched-head-title .week-line{color:#ccc !important;font-size:10px !important;}
+  .sched-head-right .mgr-name{color:#fff !important;font-size:13px !important;}
+  .sched-head-right .mgr-label,.sched-head-right .store-name{color:#aaa !important;}
+  table.sched-table{font-size:11.5px !important;border-collapse:collapse !important;}
+  table.sched-table thead th{padding:8px 5px !important;font-size:10px !important;background:#222 !important;color:#fff !important;border-right:1px solid #555 !important;-webkit-print-color-adjust:exact;}
+  table.sched-table thead th:first-child{background:#000 !important;-webkit-print-color-adjust:exact;}
+  table.sched-table thead th .th-day{font-size:11px !important;}
+  table.sched-table thead th .th-date{font-size:9px !important;}
+  table.sched-table tbody td{padding:7px 4px !important;min-width:0 !important;border-right:1px solid #ccc !important;border-bottom:1px solid #ddd !important;}
+  table.sched-table tbody td:first-child{background:#f0f0f0 !important;border-right:2px solid #888 !important;font-size:11px !important;-webkit-print-color-adjust:exact;}
+  table.sched-table tbody tr:nth-child(even) td{background:#f7f7f7 !important;-webkit-print-color-adjust:exact;}
+  .emp-role-label{font-size:7px !important;}
+  .shift-input{border:1px solid #bbb !important;box-shadow:none !important;font-size:11px !important;padding:5px 3px !important;min-width:0 !important;font-weight:700 !important;background:#fff !important;color:#000 !important;border-radius:3px !important;-webkit-print-color-adjust:exact;}
+  .sh-open{background:#eee !important;color:#000 !important;border-color:#999 !important;}
+  .sh-off{background:#f8f8f8 !important;color:#888 !important;border-color:#ccc !important;}
+  .sh-training{background:#f0f0f0 !important;color:#000 !important;border-color:#999 !important;font-style:italic !important;}
+  .sh-close{background:#e8e8e8 !important;color:#000 !important;border-color:#888 !important;}
+  .sh-mid{background:#efefef !important;color:#000 !important;border-color:#aaa !important;}
+  .sh-x{background:#f9f9f9 !important;color:#bbb !important;border-color:#ddd !important;}
+  .print-notes{display:block !important;}
+  @page{size:landscape;margin:0.6cm 1cm;}
 }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="topbar-left">
-    <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:52px;width:auto">
-    <div class="topbar-divider"></div>
-    <span class="topbar-subtitle">Schedule Maker</span>
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <div class="splash-ring"></div>
+  <div class="splash-logo-wrap">
+    <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="splash-img">
   </div>
-  <div class="topbar-actions">
-    <button class="btn btn-outline" onclick="clearAll()">🗑 Clear All</button>
-    <button class="btn btn-outline" onclick="exportCSV()">⬇ Export CSV</button>
-    <button class="btn btn-yellow" onclick="window.print()">🖨 Print Schedule</button>
+  <div class="splash-tagline">Schedule Maker</div>
+  <div class="splash-dots"><span></span><span></span><span></span></div>
+  <div class="splash-bar"></div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <button id="langBtnLogin" onclick="toggleLang()" style="position:absolute;top:20px;right:24px;background:#1a1a1a;border:1px solid #333;color:#888;padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px">🌐 <span id="langBtnLoginText">Español</span></button>
+  <div class="login-card">
+    <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="login-logo">
+    <div class="login-title" data-i18n="staffAccess">Staff Access</div>
+    <div class="login-field">
+      <label data-i18n="username">Username</label>
+      <input type="text" id="loginUser" placeholder="Username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label data-i18n="password">Password</label>
+      <input type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()"><span data-i18n="signIn">Sign In</span> →</button>
+    <div class="login-error" id="loginError" data-i18n="loginErrorMsg">Incorrect username or password.</div>
+    <div class="login-footer" data-i18n="loginFooter">SUBWAY® Internal Tool · Authorized Use Only</div>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="main-wrap">
+<!-- ── DASHBOARD ── -->
+<div id="dashScreen">
+  <div class="dash-topbar">
+    <div class="dash-topbar-left">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:42px;width:auto">
+      <div style="width:1px;height:24px;background:#222;"></div>
+      <span style="font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase;" data-i18n="scheduleMaker">Schedule Maker</span>
+    </div>
+    <div class="dash-topbar-right">
+      <button id="langBtnDash" onclick="toggleLang()" style="background:#1a1a1a;border:1px solid #333;color:#888;padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px">🌐 <span id="langBtnDashText">Español</span></button>
+      <div class="dash-greeting"><span data-i18n="welcomeBack">Welcome back,</span> <strong id="dashName">Devon</strong></div>
+      <button class="btn btn-ghost" onclick="doLogout()" data-i18n="signOut">Sign Out</button>
+    </div>
+  </div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
+  <div class="dash-body">
+    <div class="dash-welcome">
+      <h1 data-i18n="yourSchedules">Your Schedules</h1>
+      <p data-i18n="yourSchedulesSub">Create a new weekly schedule or open an existing one.</p>
+    </div>
 
-    <!-- Week Settings -->
-    <div>
-      <div class="sidebar-section-title">📅 Week Settings</div>
-      <div class="form-group">
-        <label>Store / Location Name</label>
-        <input type="text" id="storeName" placeholder="Subway - Store #" oninput="updateHeader()">
-      </div>
-      <div class="form-group">
-        <label>Manager Name</label>
-        <input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader()">
-      </div>
-      <div class="form-group">
-        <label>Week Start (Wednesday)</label>
-        <input type="date" id="weekStart" oninput="updateDates()">
+    <!-- GitHub setup -->
+    <div id="ghSetupBanner" class="gh-config" style="display:none">
+      ⚙️ <strong data-i18n="ghNotConfigured">GitHub not configured.</strong> <span data-i18n="ghNotConfiguredSub">Enter your repository details below to enable cloud saving.</span>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-top:9px">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="ghOwnerInput" placeholder="GitHub username (e.g. devon123)"
+            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
+          <input type="text" id="ghRepoInput" placeholder="Repository name (e.g. subway-schedules)"
+            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="ghTokenInput" placeholder="Personal Access Token (ghp_...)"
+            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
+          <button onclick="saveGhToken()" style="padding:7px 16px;background:#008C15;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap" data-i18n="save">Save</button>
+        </div>
       </div>
     </div>
 
-    <hr class="divider">
+    <div class="dash-actions">
+      <div class="dash-card primary" onclick="openCreateModal()">
+        <div class="dc-icon">📋</div>
+        <div class="dc-title" data-i18n="createSchedule">Create Schedule</div>
+        <div class="dc-sub" data-i18n="createScheduleSub">Start a new weekly schedule</div>
+      </div>
+      <div class="dash-card secondary" onclick="refreshScheduleList()">
+        <div class="dc-icon">📂</div>
+        <div class="dc-title" data-i18n="mySchedules">My Schedules</div>
+        <div class="dc-sub" data-i18n="mySchedulesSub">View and open saved schedules</div>
+      </div>
+    </div>
 
-    <!-- Employees -->
-    <div>
-      <div class="sidebar-section-title">👥 Employees</div>
+    <!-- Schedule list -->
+    <div class="sched-list-title" data-i18n="savedSchedules">Saved Schedules</div>
+    <div id="ghStatus" class="gh-status" style="margin-bottom:12px;display:none"></div>
+    <div class="sched-list" id="schedList">
+      <div class="dash-empty"><div class="de-icon">📭</div><p data-i18n="noSchedules">No schedules yet. Create your first one!</p></div>
+    </div>
+  </div>
+</div>
 
-      <div class="employee-list" id="empList">
-        <div style="text-align:center;padding:20px 0;color:#ccc;font-size:12px">
-          No employees yet.<br>Add one below ↓
+<!-- ── BUILDER ── -->
+<div id="builderScreen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:44px;width:auto">
+      <div class="topbar-divider"></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span class="topbar-subtitle">Schedule Maker</span>
+        <span class="topbar-schedtitle" id="topSchedTitle">Untitled</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="save-indicator" id="saveIndicator">
+        <div class="save-dot" id="saveDot"></div>
+        <span id="saveLabel">Ready</span>
+      </div>
+      <button class="btn btn-outline" onclick="goToDash()">← Dashboard</button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑 Clear</button>
+      <button class="btn btn-yellow" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+
+  <div class="main-wrap">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <!-- Week Settings -->
+      <div>
+        <div class="sidebar-section-title">📅 Week Settings</div>
+        <div class="form-group">
+          <label>Store / Location</label>
+          <input type="text" id="storeName" placeholder="Subway - Store #" oninput="updateHeader();triggerSave()">
+        </div>
+        <div class="form-group">
+          <label>Manager Name</label>
+          <input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader();triggerSave()">
+        </div>
+        <div class="form-group">
+          <label>Week Start (Wednesday)</label>
+          <input type="date" id="weekStart" oninput="updateDates();triggerSave()">
         </div>
       </div>
 
-      <div class="add-emp-form">
-        <input type="text" id="newEmpName" placeholder="Employee name..." maxlength="30"
-          onkeydown="if(event.key==='Enter')addEmployee()">
-        <select id="newEmpRole">
-          <option value="full">Full Time</option>
-          <option value="part">Part Time</option>
-          <option value="manager">Shift Manager</option>
-          <option value="training">In Training</option>
-        </select>
-        <button class="btn btn-green" style="width:100%;justify-content:center;padding:9px" onclick="addEmployee()">
-          + Add Employee
-        </button>
+      <hr class="divider">
+
+      <!-- Employees -->
+      <div>
+        <div class="sidebar-section-title">👥 Employees</div>
+        <div class="employee-list" id="empList">
+          <div style="text-align:center;padding:16px 0;color:#ccc;font-size:12px">No employees yet.<br>Add one below ↓</div>
+        </div>
+        <div class="add-emp-form">
+          <input type="text" id="newEmpName" placeholder="Employee name..." maxlength="30"
+            onkeydown="if(event.key==='Enter')addEmployee()">
+          <select id="newEmpRole">
+            <option value="full">Full Time</option>
+            <option value="part">Part Time</option>
+            <option value="manager">Shift Manager</option>
+            <option value="training">In Training</option>
+          </select>
+          <button class="btn btn-green" style="width:100%;justify-content:center;padding:9px" onclick="addEmployee()">+ Add Employee</button>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Notes -->
+      <div>
+        <div class="sidebar-section-title">📝 Notes</div>
+        <p style="font-size:11px;color:#aaa;margin-bottom:7px;line-height:1.5">Prints at the bottom of the schedule.</p>
+        <div class="form-group">
+          <label>Notes Title</label>
+          <select id="notesTitle" onchange="syncNotes();triggerSave()">
+            <option value="Notes">Notes</option>
+            <option value="Notice">Notice</option>
+            <option value="Announcement">Announcement</option>
+            <option value="Warning">Warning</option>
+            <option value="Reminder">Reminder</option>
+            <option value="Important">Important</option>
+            <option value="Update">Update</option>
+            <option value="Message">Message</option>
+          </select>
+        </div>
+        <textarea id="schedNotes" class="notes-textarea"
+          placeholder="e.g. Store closed Sunday. Team meeting Thursday 3pm..."
+          oninput="syncNotes();triggerSave()"></textarea>
       </div>
     </div>
 
-    <hr class="divider">
-
-    <!-- Quick Shifts -->
-    <div>
-      <div class="sidebar-section-title">⚡ Quick Shifts</div>
-
-      <div class="shift-preset" onclick="applyPreset('Open')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#a3d9a3;border:1px solid #6dbb6d"></div><span class="ps-name">Open</span></div>
-        <span class="ps-label">Opening shift</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('9 to 5')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#99bbff;border:1px solid #6699ee"></div><span class="ps-name">9 to 5</span></div>
-        <span class="ps-label">Standard</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('8 to 4')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#99bbff;border:1px solid #6699ee"></div><span class="ps-name">8 to 4</span></div>
-        <span class="ps-label">Morning</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('Open to 2')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#99bbff;border:1px solid #6699ee"></div><span class="ps-name">Open to 2</span></div>
-        <span class="ps-label">Half day AM</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('11 to 7')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#99bbff;border:1px solid #6699ee"></div><span class="ps-name">11 to 7</span></div>
-        <span class="ps-label">Mid shift</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('12 to close')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#ffbb99;border:1px solid #ff8855"></div><span class="ps-name">12 to close</span></div>
-        <span class="ps-label">Closing</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('4 to close')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#ffbb99;border:1px solid #ff8855"></div><span class="ps-name">4 to close</span></div>
-        <span class="ps-label">Evening/close</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('Training')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#FFE082;border:1px solid #FFC600"></div><span class="ps-name">Training</span></div>
-        <span class="ps-label">Training day</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('Off')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#e0e0e0;border:1px solid #ccc"></div><span class="ps-name">Off</span></div>
-        <span class="ps-label">Day off</span>
-      </div>
-      <div class="shift-preset" onclick="applyPreset('x')">
-        <div style="display:flex;align-items:center"><div class="shift-dot" style="background:#eee;border:1px solid #ddd"></div><span class="ps-name">X</span></div>
-        <span class="ps-label">Not scheduled</span>
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="empty-state" id="emptyState">
+        <div class="es-icon">📋</div>
+        <h3>No employees added yet</h3>
+        <p>Add employees from the left panel.</p>
       </div>
 
-      <div class="tip-box" style="margin-top:8px">
-        💡 Click any cell first, then click a quick shift — or right-click any cell.
-      </div>
-    </div>
-
-    <hr class="divider">
-
-    <!-- Notes -->
-    <div>
-      <div class="sidebar-section-title">📝 Schedule Notes</div>
-      <textarea id="schedNotes" placeholder="Notes for this week..."
-        style="width:100%;height:68px;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:12px;font-family:inherit;resize:none;outline:none;background:#fafafa"
-        onfocus="this.style.borderColor='#008C15'" onblur="this.style.borderColor='#e0e0e0'"></textarea>
-    </div>
-
-  </div><!-- /sidebar -->
-
-  <!-- CONTENT -->
-  <div class="content">
-
-    <!-- Empty state when no employees -->
-    <div class="empty-state" id="emptyState" style="display:block">
-      <div class="es-icon">📋</div>
-      <h3>No employees added yet</h3>
-      <p>Add employees using the panel on the left<br>and the schedule will appear here.</p>
-    </div>
-
-    <!-- Schedule table -->
-    <div class="schedule-wrap" id="schedWrap" style="display:none">
-
-      <!-- Header strip -->
-      <div class="sched-head">
-        <div class="sched-head-yellow"></div>
-        <div class="sched-head-green"></div>
-        <div class="sched-head-inner">
-          <div class="sched-head-title">
-            <h2>Weekly Schedule</h2>
-            <div class="week-line" id="hdrWeek">Week of: —</div>
+      <div class="schedule-wrap" id="schedWrap" style="display:none">
+        <!-- Header -->
+        <div class="sched-head">
+          <div class="sched-head-yellow"></div>
+          <div class="sched-head-green"></div>
+          <div class="sched-head-inner">
+            <div class="sched-head-title">
+              <h2>Weekly Schedule</h2>
+              <div class="week-line" id="hdrWeek">Week of: —</div>
+            </div>
+            <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:46px;width:auto">
+            <div class="sched-head-right">
+              <div class="mgr-label">Manager</div>
+              <div class="mgr-name" id="hdrMgr">—</div>
+              <div class="store-name" id="hdrStore"></div>
+            </div>
           </div>
-          <!-- Logo in header -->
-          <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:46px;width:auto">
-          <div class="sched-head-right">
-            <div class="mgr-label">Manager</div>
-            <div class="mgr-name" id="hdrMgr">—</div>
-            <div class="store-name" id="hdrStore"></div>
-          </div>
+        </div>
+
+        <!-- Table -->
+        <div style="overflow-x:auto">
+          <table class="sched-table" id="schedTable">
+            <thead><tr id="tHead"><th>Employee</th></tr></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Print notes -->
+        <div class="print-notes" id="printNotes" style="display:none">
+          <div class="print-notes-label" id="printNotesLabel">📝 Notes</div>
+          <div class="print-notes-text" id="printNotesText"></div>
+        </div>
+
+        <!-- Totals -->
+        <div class="totals-bar">
+          <div class="total-stat"><span class="t-val" id="totEmp">0</span><span class="t-lbl">Employees</span></div>
+          <div class="total-stat"><span class="t-val" id="totShifts">0</span><span class="t-lbl">Shifts</span></div>
+          <div class="total-stat"><span class="t-val" id="totOff">0</span><span class="t-lbl">Days Off</span></div>
+          <div class="total-stat"><span class="t-val" id="totPct">—</span><span class="t-lbl">Coverage</span></div>
+          <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:38px;width:auto">
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+          <strong style="font-size:10px;color:#666;margin-right:4px;text-transform:uppercase;letter-spacing:1px">Legend</strong>
+          <div class="leg-item"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>Mid</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>Close</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div>Training</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div>Off</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:1px solid #e5e5e5"></div>X</div>
+          <div class="leg-hint">Right-click any cell for quick options</div>
         </div>
       </div>
+    </div>
+  </div>
+</div><!-- /builderScreen -->
 
-      <!-- Table -->
-      <div style="overflow-x:auto">
-        <table class="sched-table" id="schedTable">
-          <thead>
-            <tr id="tHead">
-              <th>Employee</th>
-            </tr>
-          </thead>
-          <tbody id="tBody"></tbody>
-        </table>
-      </div>
+</div><!-- /app -->
 
-      <!-- Totals bar -->
-      <div class="totals-bar">
-        <div class="total-stat">
-          <span class="t-val" id="totEmp">0</span>
-          <span class="t-lbl">Employees</span>
-        </div>
-        <div class="total-stat">
-          <span class="t-val" id="totShifts">0</span>
-          <span class="t-lbl">Shifts This Week</span>
-        </div>
-        <div class="total-stat">
-          <span class="t-val" id="totOff">0</span>
-          <span class="t-lbl">Days Off</span>
-        </div>
-        <div class="total-stat">
-          <span class="t-val" id="totPct">—</span>
-          <span class="t-lbl">Coverage</span>
-        </div>
-        <!-- Subway logo in footer -->
-        <div class="totals-logo">
-          <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:42px;width:auto">
-        </div>
-      </div>
+<!-- ── CREATE MODAL ── -->
+<div class="modal-bg" id="createModal">
+  <div class="modal-box">
+    <div style="height:5px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);border-radius:4px 4px 0 0;margin:-32px -32px 24px;"></div>
+    <h3 data-i18n="createNewSchedule">Create New Schedule</h3>
+    <p data-i18n="createNewScheduleSub">Give this schedule a name so you can find it later.</p>
+    <div class="modal-field">
+      <label data-i18n="scheduleTitle">Schedule Title</label>
+      <input type="text" id="newSchedTitle" placeholder="e.g. Week of June 30 · Store #1234" maxlength="60"
+        onkeydown="if(event.key==='Enter')createSchedule()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeCreateModal()" style="color:#666" data-i18n="cancel">Cancel</button>
+      <button class="btn btn-yellow" onclick="createSchedule()"><span data-i18n="createScheduleBtn">Create Schedule</span> →</button>
+    </div>
+  </div>
+</div>
 
-      <!-- Legend -->
-      <div class="legend">
-        <strong style="font-size:10px;color:#666;margin-right:4px;text-transform:uppercase;letter-spacing:1px">Legend</strong>
-        <div class="leg-item"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>Mid Shift</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>Close</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div>Training</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div>Off</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:1px solid #e5e5e5"></div>X</div>
-        <div class="leg-hint">Right-click any cell for quick options</div>
-      </div>
+<!-- ── CONFIRMATION MODAL ── -->
+<div class="sw-modal-bg" id="swModal">
+  <div class="sw-modal-box">
+    <div class="sw-modal-top-bar"></div>
+    <div class="sw-modal-head">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:36px;width:auto">
+      <div style="width:1px;height:20px;background:#e0e0e0"></div>
+      <span id="swModalBadge" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aaa">Confirmation</span>
+    </div>
+    <div class="sw-modal-body">
+      <div class="sw-modal-icon" id="swModalIcon">⚠️</div>
+      <div class="sw-modal-msg" id="swModalMsg"></div>
+      <div class="sw-modal-sub" id="swModalSub"></div>
+    </div>
+    <div class="sw-modal-btns">
+      <button id="swModalCancel" style="padding:10px 20px;border-radius:8px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#555">Cancel</button>
+      <button id="swModalOk" style="padding:10px 24px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;color:#fff;background:#cc2200">Confirm</button>
+    </div>
+    <div class="sw-modal-bot-bar"></div>
+  </div>
+</div>
 
-    </div><!-- /schedule-wrap -->
-
-  </div><!-- /content -->
-</div><!-- /main-wrap -->
-
-<!-- Context Menu -->
+<!-- ── CONTEXT MENU ── -->
 <div class="ctx-menu" id="ctxMenu">
   <div class="ctx-menu-head">Set Shift</div>
-  <div class="ctx-item" onclick="ctxApply('Open')">
-    <div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open
-  </div>
-  <div class="ctx-item" onclick="ctxApply('9 to 5')">
-    <div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>9 to 5
-  </div>
-  <div class="ctx-item" onclick="ctxApply('8 to 4')">
-    <div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>8 to 4
-  </div>
-  <div class="ctx-item" onclick="ctxApply('Open to 2')">
-    <div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>Open to 2
-  </div>
-  <div class="ctx-item" onclick="ctxApply('11 to 7')">
-    <div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>11 to 7
-  </div>
-  <div class="ctx-item" onclick="ctxApply('12 to close')">
-    <div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>12 to close
-  </div>
-  <div class="ctx-item" onclick="ctxApply('4 to close')">
-    <div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>4 to close
-  </div>
-  <div class="ctx-item" onclick="ctxApply('Training')">
-    <div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div>Training
-  </div>
-  <div class="ctx-item" onclick="ctxApply('Off')">
-    <div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div>Off
-  </div>
-  <div class="ctx-item" onclick="ctxApply('x')">
-    <div class="leg-dot" style="background:#f5f5f5;border:1px solid #e5e5e5"></div>X (not scheduled)
-  </div>
+  <div class="ctx-item" onclick="ctxApply('Open')"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open</div>
+  <div class="ctx-item" onclick="ctxApply('9 to 5')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>9 to 5</div>
+  <div class="ctx-item" onclick="ctxApply('8 to 4')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>8 to 4</div>
+  <div class="ctx-item" onclick="ctxApply('Open to 2')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>Open to 2</div>
+  <div class="ctx-item" onclick="ctxApply('11 to 7')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>11 to 7</div>
+  <div class="ctx-item" onclick="ctxApply('12 to close')"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>12 to close</div>
+  <div class="ctx-item" onclick="ctxApply('4 to close')"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>4 to close</div>
+  <div class="ctx-item" onclick="ctxApply('Training')"><div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div>Training</div>
+  <div class="ctx-item" onclick="ctxApply('Off')"><div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div>Off</div>
+  <div class="ctx-item" onclick="ctxApply('x')"><div class="leg-dot" style="background:#f5f5f5;border:1px solid #e5e5e5"></div>X (not scheduled)</div>
   <div class="ctx-item ctx-danger" onclick="ctxApply('')">✕ Clear cell</div>
 </div>
 
-<!-- Toast notification -->
 <div class="toast" id="toast"></div>
 
-<!-- ─── SUBWAY CUSTOM MODAL ─── -->
-<div id="swModal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);backdrop-filter:blur(3px)">
-  <div style="background:#fff;border-radius:16px;overflow:hidden;width:360px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.22);animation:swModalIn 0.18s ease">
-
-    <!-- Color bar top -->
-    <div style="height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)"></div>
-
-    <!-- Header with logo -->
-    <div style="background:#f9f9f9;padding:18px 22px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #eee">
-      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:38px;width:auto">
-      <div style="width:1px;height:22px;background:#e0e0e0"></div>
-      <span id="swModalBadge" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aaa">Confirmation</span>
-    </div>
-
-    <!-- Icon + message -->
-    <div style="padding:26px 26px 10px;text-align:center">
-      <div id="swModalIcon" style="font-size:38px;margin-bottom:10px">⚠️</div>
-      <p id="swModalMsg" style="font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:4px"></p>
-      <p id="swModalSub" style="font-size:12px;color:#999;margin-bottom:0"></p>
-    </div>
-
-    <!-- Buttons -->
-    <div style="padding:16px 22px 22px;display:flex;gap:10px;justify-content:flex-end">
-      <button id="swModalCancel" style="padding:10px 22px;border-radius:8px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#555;transition:all 0.12s"
-        onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">Cancel</button>
-      <button id="swModalOk" style="padding:10px 26px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;color:#fff;background:#cc2200;transition:all 0.12s"
-        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Confirm</button>
-    </div>
-
-    <!-- Bottom color accent -->
-    <div style="height:4px;background:linear-gradient(90deg,#008C15 50%,#FFC600 50%)"></div>
-  </div>
-</div>
-
-<style>
-@keyframes swModalIn {
-  from { transform: scale(0.92) translateY(10px); opacity:0; }
-  to   { transform: scale(1) translateY(0);       opacity:1; }
-}
-</style>
-
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
 <script>
-const DAYS = ['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'];
-let employees = [];
-let schedData = {};
-let empCounter = 1;
-let activeCell = null;
-let ctxCell = null;
+/* ── CREDENTIALS ──
+   Username: devon
+   Password: Subway@2025! (change below if you want a different one) */
+const CREDS = { username: 'devon', password: 'Subway@2025!' };
 
-/* ── Custom modal helper ── */
-function swConfirm({ icon='⚠️', badge='Confirmation', message, sub='', okLabel='Confirm', okColor='#cc2200', onOk }) {
-  const modal  = document.getElementById('swModal');
-  document.getElementById('swModalIcon').textContent  = icon;
-  document.getElementById('swModalBadge').textContent = badge;
-  document.getElementById('swModalMsg').textContent   = message;
-  document.getElementById('swModalSub').textContent   = sub || '';
-  const okBtn = document.getElementById('swModalOk');
-  okBtn.textContent        = okLabel;
-  okBtn.style.background   = okColor;
-  modal.style.display      = 'flex';
-  const close = () => { modal.style.display = 'none'; };
-  okBtn.onclick = () => { close(); onOk(); };
-  document.getElementById('swModalCancel').onclick = close;
-  modal.onclick = e => { if (e.target === modal) close(); };
+/* ── GITHUB CONFIG ──
+   Devon enters her own GitHub username, repo name, and token
+   from the dashboard banner. Nothing is hardcoded here for security —
+   the values live only in her browser's localStorage. */
+let GH_OWNER  = '';
+let GH_REPO   = '';
+let GH_TOKEN  = '';
+const GH_BRANCH = 'main';
+
+/* ── LANGUAGE ── */
+let currentLang = 'en';
+const I18N = {
+  en: {
+    staffAccess:'Staff Access', username:'Username', password:'Password', signIn:'Sign In',
+    loginErrorMsg:'Incorrect username or password.', loginFooter:'SUBWAY® Internal Tool · Authorized Use Only',
+    scheduleMaker:'Schedule Maker', welcomeBack:'Welcome back,', signOut:'Sign Out',
+    yourSchedules:'Your Schedules', yourSchedulesSub:'Create a new weekly schedule or open an existing one.',
+    ghNotConfigured:'GitHub not configured.', ghNotConfiguredSub:'Enter your repository details below to enable cloud saving.',
+    save:'Save', createSchedule:'Create Schedule', createScheduleSub:'Start a new weekly schedule',
+    mySchedules:'My Schedules', mySchedulesSub:'View and open saved schedules',
+    savedSchedules:'Saved Schedules', noSchedules:'No schedules yet. Create your first one!',
+    createNewSchedule:'Create New Schedule', createNewScheduleSub:'Give this schedule a name so you can find it later.',
+    scheduleTitle:'Schedule Title', cancel:'Cancel', createScheduleBtn:'Create Schedule'
+  },
+  es: {
+    staffAccess:'Acceso del Personal', username:'Usuario', password:'Contraseña', signIn:'Entrar',
+    loginErrorMsg:'Usuario o contraseña incorrectos.', loginFooter:'Herramienta Interna SUBWAY® · Solo Uso Autorizado',
+    scheduleMaker:'Creador de Horarios', welcomeBack:'Bienvenida de nuevo,', signOut:'Cerrar Sesión',
+    yourSchedules:'Tus Horarios', yourSchedulesSub:'Crea un nuevo horario semanal o abre uno existente.',
+    ghNotConfigured:'GitHub no configurado.', ghNotConfiguredSub:'Ingresa los datos de tu repositorio abajo para activar el guardado en la nube.',
+    save:'Guardar', createSchedule:'Crear Horario', createScheduleSub:'Comienza un nuevo horario semanal',
+    mySchedules:'Mis Horarios', mySchedulesSub:'Ver y abrir horarios guardados',
+    savedSchedules:'Horarios Guardados', noSchedules:'Aún no hay horarios. ¡Crea el primero!',
+    createNewSchedule:'Crear Nuevo Horario', createNewScheduleSub:'Ponle un nombre a este horario para encontrarlo después.',
+    scheduleTitle:'Título del Horario', cancel:'Cancelar', createScheduleBtn:'Crear Horario'
+  }
+};
+
+function applyLang() {
+  const dict = I18N[currentLang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
+  });
+  const labelEn = currentLang === 'en' ? 'Español' : 'English';
+  const a = document.getElementById('langBtnLoginText');
+  const b = document.getElementById('langBtnDashText');
+  if (a) a.textContent = labelEn;
+  if (b) b.textContent = labelEn;
 }
 
-const ROLE_LABELS = { manager:'Shift Manager', full:'Full Time', part:'Part Time', training:'In Training' };
-const ROLE_CLASS  = { manager:'role-manager', full:'role-full', part:'role-part', training:'role-training' };
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'es' : 'en';
+  localStorage.setItem('sw_lang', currentLang);
+  applyLang();
+}
 
+/* ── STATE ── */
+const DAYS = ['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'];
+const ROLE_LABELS = {manager:'Shift Manager',full:'Full Time',part:'Part Time',training:'In Training'};
+const ROLE_CLASS  = {manager:'role-manager',full:'role-full',part:'role-part',training:'role-training'};
+
+let employees   = [];
+let schedData   = {};
+let empCounter  = 1;
+let ctxCell     = null;
+let currentSchedId  = null;
+let currentSchedTitle = '';
+let saveTimer   = null;
+let saveFileSha = null; // for GitHub update
+
+/* ══════════════════════════════════
+   SPLASH → APP
+══════════════════════════════════ */
+setTimeout(() => {
+  document.getElementById('app').classList.add('visible');
+  // Load GitHub config + language
+  GH_TOKEN  = localStorage.getItem('gh_token') || '';
+  GH_OWNER  = localStorage.getItem('gh_owner') || '';
+  GH_REPO   = localStorage.getItem('gh_repo')  || '';
+  currentLang = localStorage.getItem('sw_lang') || 'en';
+  applyLang();
+  // Check session
+  if (sessionStorage.getItem('sw_auth') === '1') {
+    showDash();
+  } else {
+    showLogin();
+  }
+}, 3600);
+
+/* ══════════════════════════════════
+   AUTH
+══════════════════════════════════ */
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('dashScreen').style.display  = 'none';
+  document.getElementById('builderScreen').style.display = 'none';
+  applyLang();
+}
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value;
+  if (u === CREDS.username && p === CREDS.password) {
+    sessionStorage.setItem('sw_auth','1');
+    document.getElementById('loginError').style.display = 'none';
+    showDash();
+  } else {
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('sw_auth');
+  currentSchedId = null;
+  showLogin();
+}
+
+/* ══════════════════════════════════
+   DASHBOARD
+══════════════════════════════════ */
+function showDash() {
+  document.getElementById('loginScreen').style.display  = 'none';
+  document.getElementById('dashScreen').style.display   = 'block';
+  document.getElementById('builderScreen').style.display = 'none';
+  applyLang();
+  checkGhSetup();
+  refreshScheduleList();
+}
+
+function goToDash() {
+  showDash();
+}
+
+function checkGhSetup() {
+  const banner = document.getElementById('ghSetupBanner');
+  if (!GH_OWNER || !GH_REPO || !GH_TOKEN) {
+    banner.style.display = 'block';
+    // Pre-fill fields if partially saved
+    const oi = document.getElementById('ghOwnerInput');
+    const ri = document.getElementById('ghRepoInput');
+    if (oi && GH_OWNER) oi.value = GH_OWNER;
+    if (ri && GH_REPO)  ri.value = GH_REPO;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function saveGhToken() {
+  const owner = document.getElementById('ghOwnerInput').value.trim();
+  const repo  = document.getElementById('ghRepoInput').value.trim();
+  const token = document.getElementById('ghTokenInput').value.trim();
+  if (!owner || !repo || !token) { showToast('Please fill in username, repo, and token.'); return; }
+  GH_OWNER = owner;
+  GH_REPO  = repo;
+  GH_TOKEN = token;
+  localStorage.setItem('gh_owner', owner);
+  localStorage.setItem('gh_repo', repo);
+  localStorage.setItem('gh_token', token);
+  checkGhSetup();
+  showToast('GitHub connected ✓');
+  refreshScheduleList();
+}
+
+/* ── Schedule List ── */
+async function refreshScheduleList() {
+  const listEl  = document.getElementById('schedList');
+  const statusEl = document.getElementById('ghStatus');
+
+  // If no GitHub config, load from localStorage
+  if (!GH_OWNER || !GH_REPO || !GH_TOKEN) {
+    statusEl.style.display = 'none';
+    loadLocalScheduleList(listEl);
+    return;
+  }
+
+  statusEl.style.display = 'flex';
+  statusEl.className = 'gh-status';
+  statusEl.innerHTML = '⏳ Loading from GitHub...';
+
+  try {
+    const res = await ghAPI(`contents/schedules`, 'GET');
+    if (!res.ok && res.status === 404) {
+      // folder doesn't exist yet
+      statusEl.innerHTML = '✅ Connected to GitHub';
+      statusEl.className = 'gh-status ok';
+      listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
+      return;
+    }
+    const files = await res.json();
+    statusEl.innerHTML = '✅ Synced with GitHub';
+    statusEl.className = 'gh-status ok';
+    renderScheduleList(listEl, files.filter(f => f.name.endsWith('.json')));
+  } catch(e) {
+    statusEl.innerHTML = '⚠️ Could not connect to GitHub — showing local saves';
+    statusEl.className = 'gh-status err';
+    loadLocalScheduleList(listEl);
+  }
+}
+
+function loadLocalScheduleList(listEl) {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('sw_sched_'));
+  if (keys.length === 0) {
+    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
+    return;
+  }
+  const items = keys.map(k => {
+    try { return { id: k.replace('sw_sched_',''), data: JSON.parse(localStorage.getItem(k)) }; }
+    catch(e) { return null; }
+  }).filter(Boolean);
+  renderLocalList(listEl, items);
+}
+
+function renderLocalList(listEl, items) {
+  if (items.length === 0) {
+    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet.</p></div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  items.sort((a,b) => (b.data.updatedAt||0)-(a.data.updatedAt||0));
+  items.forEach(({id, data}) => {
+    const div = makeSchedItem(data.title||id, data.updatedAt, () => openLocalSched(id), () => deleteLocalSched(id));
+    listEl.appendChild(div);
+  });
+}
+
+function renderScheduleList(listEl, files) {
+  if (files.length === 0) {
+    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  files.forEach(f => {
+    const name = f.name.replace('.json','').replace(/_/g,' ');
+    const div  = makeSchedItem(name, null, () => openGhSched(f.name, f.sha), () => deleteGhSched(f.name, f.sha));
+    listEl.appendChild(div);
+  });
+}
+
+function makeSchedItem(title, updatedAt, onOpen, onDelete) {
+  const div = document.createElement('div');
+  div.className = 'sched-item';
+  const dateStr = updatedAt ? new Date(updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+  div.innerHTML =
+    '<div class="sched-item-left">'+
+      '<div class="sched-item-title">'+escHtml(title)+'</div>'+
+      (dateStr?'<div class="sched-item-meta">Last edited: '+dateStr+'</div>':'')+
+    '</div>'+
+    '<div class="sched-item-right">'+
+      '<span class="sched-item-badge">Open →</span>'+
+      '<button class="sched-del-btn" title="Delete">🗑</button>'+
+    '</div>';
+  div.querySelector('.sched-item-badge').onclick = (e) => { e.stopPropagation(); onOpen(); };
+  div.querySelector('.sched-del-btn').onclick = (e) => { e.stopPropagation(); onDelete(); };
+  div.onclick = onOpen;
+  return div;
+}
+
+/* ── Create modal ── */
+function openCreateModal() {
+  document.getElementById('createModal').classList.add('open');
+  setTimeout(() => document.getElementById('newSchedTitle').focus(), 100);
+}
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('open');
+  document.getElementById('newSchedTitle').value = '';
+}
+
+function createSchedule() {
+  const title = document.getElementById('newSchedTitle').value.trim();
+  if (!title) {
+    document.getElementById('newSchedTitle').style.borderColor = '#cc2200';
+    setTimeout(() => document.getElementById('newSchedTitle').style.borderColor = '#333', 1500);
+    showToast('Please enter a schedule title.');
+    return;
+  }
+  closeCreateModal();
+  const id = 'sched_' + Date.now();
+  currentSchedId    = id;
+  currentSchedTitle = title;
+  // Reset builder state
+  employees  = [];
+  schedData  = {};
+  empCounter = 1;
+  saveFileSha = null;
+  openBuilder(title);
+}
+
+/* ── Open schedule ── */
+function openLocalSched(id) {
+  const raw = localStorage.getItem('sw_sched_' + id);
+  if (!raw) { showToast('Could not load schedule.'); return; }
+  const data = JSON.parse(raw);
+  currentSchedId    = id;
+  currentSchedTitle = data.title || id;
+  loadBuilderData(data);
+  openBuilder(currentSchedTitle);
+}
+
+async function openGhSched(filename, sha) {
+  showToast('Loading...');
+  try {
+    const res  = await ghAPI('contents/schedules/' + filename, 'GET');
+    const json = await res.json();
+    const data = JSON.parse(atob(json.content.replace(/\n/g,'')));
+    saveFileSha = json.sha;
+    currentSchedId    = filename.replace('.json','');
+    currentSchedTitle = data.title || currentSchedId;
+    loadBuilderData(data);
+    openBuilder(currentSchedTitle);
+  } catch(e) {
+    showToast('Failed to load from GitHub.');
+  }
+}
+
+function loadBuilderData(data) {
+  employees  = data.employees  || [];
+  schedData  = data.schedData  || {};
+  empCounter = data.empCounter || (employees.length + 1);
+  setTimeout(() => {
+    if (data.storeName)   document.getElementById('storeName').value   = data.storeName;
+    if (data.managerName) document.getElementById('managerName').value = data.managerName;
+    if (data.weekStart)   document.getElementById('weekStart').value   = data.weekStart;
+    if (data.notes)       document.getElementById('schedNotes').value  = data.notes;
+    if (data.notesTitle){
+      const sel = document.getElementById('notesTitle');
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value===data.notesTitle){sel.selectedIndex=i;break;}
+      }
+    }
+    updateHeader();
+    updateDates();
+    renderEmployeeList();
+    renderTable();
+    syncNotes();
+  }, 50);
+}
+
+function openBuilder(title) {
+  document.getElementById('loginScreen').style.display    = 'none';
+  document.getElementById('dashScreen').style.display     = 'none';
+  document.getElementById('builderScreen').style.display  = 'block';
+  document.getElementById('topSchedTitle').textContent    = title;
+  setSaveStatus('ready');
+  // Reset fields if new schedule
+  if (employees.length === 0) {
+    document.getElementById('storeName').value   = '';
+    document.getElementById('managerName').value = '';
+    document.getElementById('schedNotes').value  = '';
+    const ws = document.getElementById('weekStart');
+    if (!ws.value) setDefaultWeek();
+    renderEmployeeList();
+    renderTable();
+    updateHeader();
+    updateDates();
+    syncNotes();
+  }
+}
+
+/* ── Delete ── */
+function deleteLocalSched(id) {
+  swConfirm({
+    icon:'🗑️', badge:'Delete Schedule',
+    message:'Delete this schedule?', sub:'This cannot be undone.',
+    okLabel:'Delete', okColor:'#cc2200',
+    onOk: () => {
+      localStorage.removeItem('sw_sched_' + id);
+      refreshScheduleList();
+      showToast('Schedule deleted.');
+    }
+  });
+}
+
+function deleteGhSched(filename, sha) {
+  swConfirm({
+    icon:'🗑️', badge:'Delete Schedule',
+    message:'Delete "'+filename.replace('.json','').replace(/_/g,' ')+'"?',
+    sub:'It will be permanently removed from GitHub.',
+    okLabel:'Delete', okColor:'#cc2200',
+    onOk: async () => {
+      try {
+        await ghAPI('contents/schedules/'+filename, 'DELETE', {
+          message: 'Delete schedule: '+filename,
+          sha: sha,
+          branch: GH_BRANCH
+        });
+        showToast('Schedule deleted from GitHub.');
+        refreshScheduleList();
+      } catch(e) { showToast('Failed to delete from GitHub.'); }
+    }
+  });
+}
+
+/* ══════════════════════════════════
+   BUILDER LOGIC
+══════════════════════════════════ */
 function shiftClass(v) {
   if (!v) return '';
   const l = v.toLowerCase().trim();
-  if (l === 'off') return 'sh-off';
-  if (l === 'x')   return 'sh-x';
-  if (l === 'training') return 'sh-training';
+  if (l==='off') return 'sh-off';
+  if (l==='x')   return 'sh-x';
+  if (l==='training') return 'sh-training';
   if (l.includes('close')) return 'sh-close';
-  if (l === 'open' || l.startsWith('open')) return 'sh-open';
+  if (l==='open'||l.startsWith('open')) return 'sh-open';
   return 'sh-mid';
 }
 
 function updateHeader() {
   const mgr   = document.getElementById('managerName').value.trim();
   const store = document.getElementById('storeName').value.trim();
-  document.getElementById('hdrMgr').textContent   = mgr   || '—';
-  document.getElementById('hdrStore').textContent = store || '';
+  const hm = document.getElementById('hdrMgr');
+  const hs = document.getElementById('hdrStore');
+  if(hm) hm.textContent = mgr   || '—';
+  if(hs) hs.textContent = store || '';
 }
 
 function updateDates() {
   const ws = document.getElementById('weekStart').value;
-  if (!ws) { document.getElementById('hdrWeek').textContent = 'Week of: —'; rebuildHead(); return; }
-  const base = new Date(ws + 'T00:00:00');
-  const end  = new Date(base); end.setDate(base.getDate() + 6);
-  const fmt  = d => (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
-  document.getElementById('hdrWeek').textContent = 'Week of: ' + fmt(base) + ' – ' + fmt(end);
+  const hw = document.getElementById('hdrWeek');
+  if (!ws) { if(hw) hw.textContent='Week of: —'; rebuildHead(); return; }
+  const base = new Date(ws+'T00:00:00');
+  const end  = new Date(base); end.setDate(base.getDate()+6);
+  const fmt  = d => (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
+  if(hw) hw.textContent = 'Week of: '+fmt(base)+' – '+fmt(end);
   rebuildHead();
 }
 
 function getDates() {
   const ws = document.getElementById('weekStart').value;
-  if (!ws) return DAYS.map(() => '');
-  const base = new Date(ws + 'T00:00:00');
-  return DAYS.map((_,i) => {
-    const d = new Date(base); d.setDate(base.getDate()+i);
-    return (d.getMonth()+1)+'/'+(d.getDate());
-  });
+  if (!ws) return DAYS.map(()=>'');
+  const base = new Date(ws+'T00:00:00');
+  return DAYS.map((_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return(d.getMonth()+1)+'/'+(d.getDate());});
 }
 
 function rebuildHead() {
   const dates = getDates();
   const tr = document.getElementById('tHead');
+  if(!tr) return;
   tr.innerHTML = '<th>Employee</th>';
-  DAYS.forEach((day, i) => {
+  DAYS.forEach((day,i)=>{
     const th = document.createElement('th');
-    th.innerHTML = '<span class="th-day">'+day+'</span><span class="th-date">'+dates[i]+'</span>';
+    th.innerHTML='<span class="th-day">'+day+'</span><span class="th-date">'+dates[i]+'</span>';
     tr.appendChild(th);
   });
 }
 
 function renderEmployeeList() {
   const el = document.getElementById('empList');
-  if (employees.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:20px 0;color:#ccc;font-size:12px">No employees yet.<br>Add one below ↓</div>';
+  if(!el) return;
+  if (employees.length===0) {
+    el.innerHTML='<div style="text-align:center;padding:16px 0;color:#ccc;font-size:12px">No employees yet.<br>Add one below ↓</div>';
     return;
   }
-  el.innerHTML = '';
-  employees.forEach(emp => {
-    const div = document.createElement('div');
-    div.className = 'employee-chip';
-    div.innerHTML =
-      '<span>'+emp.name+'</span>' +
-      '<div class="chip-right">' +
-        '<span class="role-badge '+ROLE_CLASS[emp.role]+'">'+ROLE_LABELS[emp.role]+'</span>' +
-        '<button class="chip-del" onclick="removeEmp('+emp.id+')" title="Remove employee">×</button>' +
+  el.innerHTML='';
+  employees.forEach(emp=>{
+    const div=document.createElement('div');
+    div.className='employee-chip';
+    div.innerHTML='<span>'+escHtml(emp.name)+'</span>'+
+      '<div class="chip-right">'+
+        '<span class="role-badge '+ROLE_CLASS[emp.role]+'">'+ROLE_LABELS[emp.role]+'</span>'+
+        '<button class="chip-del" onclick="removeEmp('+emp.id+')" title="Remove">×</button>'+
       '</div>';
     el.appendChild(div);
   });
@@ -1053,209 +1321,265 @@ function renderEmployeeList() {
 
 function renderTable() {
   rebuildHead();
-  const tbody = document.getElementById('tBody');
-  tbody.innerHTML = '';
+  const tbody=document.getElementById('tBody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  const show=employees.length>0;
+  const es=document.getElementById('emptyState');
+  const sw=document.getElementById('schedWrap');
+  if(es) es.style.display=show?'none':'block';
+  if(sw) sw.style.display=show?'block':'none';
 
-  const show = employees.length > 0;
-  document.getElementById('emptyState').style.display = show ? 'none' : 'block';
-  document.getElementById('schedWrap').style.display  = show ? 'block' : 'none';
-
-  employees.forEach(emp => {
-    const tr = document.createElement('tr');
-
-    // Name cell
-    const nameTd = document.createElement('td');
-    nameTd.innerHTML =
-      '<div class="emp-name-wrap">' +
-        '<span>'+emp.name+'</span>' +
-        '<span class="emp-role-label">'+ROLE_LABELS[emp.role]+'</span>' +
-      '</div>';
+  employees.forEach(emp=>{
+    const tr=document.createElement('tr');
+    const nameTd=document.createElement('td');
+    nameTd.innerHTML='<div class="emp-name-wrap"><span>'+escHtml(emp.name)+'</span><span class="emp-role-label">'+ROLE_LABELS[emp.role]+'</span></div>';
     tr.appendChild(nameTd);
-
-    // Day cells
-    DAYS.forEach((_, di) => {
-      const key = emp.id + '_' + di;
-      const val = schedData[key] || '';
-      const td  = document.createElement('td');
-      const inp = document.createElement('input');
-      inp.type        = 'text';
-      inp.className   = 'shift-input ' + shiftClass(val);
-      inp.value       = val;
-      inp.placeholder = '—';
-      inp.dataset.key = key;
-
-      inp.addEventListener('focus', function() { activeCell = this; });
-      inp.addEventListener('input', function() {
-        schedData[this.dataset.key] = this.value;
-        this.className = 'shift-input ' + shiftClass(this.value);
+    DAYS.forEach((_,di)=>{
+      const key=emp.id+'_'+di;
+      const val=schedData[key]||'';
+      const td=document.createElement('td');
+      const inp=document.createElement('input');
+      inp.type='text';
+      inp.className='shift-input '+shiftClass(val);
+      inp.value=val;
+      inp.placeholder='—';
+      inp.dataset.key=key;
+      inp.addEventListener('input',function(){
+        schedData[this.dataset.key]=this.value;
+        this.className='shift-input '+shiftClass(this.value);
         updateTotals();
+        triggerSave();
       });
-      inp.addEventListener('contextmenu', function(e) {
+      inp.addEventListener('contextmenu',function(e){
         e.preventDefault();
-        ctxCell    = this;
-        activeCell = this;
-        showCtx(e.clientX, e.clientY);
+        ctxCell=this;
+        showCtx(e.clientX,e.clientY);
       });
-
       td.appendChild(inp);
       tr.appendChild(td);
     });
-
     tbody.appendChild(tr);
   });
-
   updateTotals();
 }
 
 function updateTotals() {
-  let shifts = 0, offs = 0, total = employees.length * 7;
-  employees.forEach(emp => {
-    DAYS.forEach((_, di) => {
-      const v = (schedData[emp.id+'_'+di]||'').toLowerCase().trim();
-      if (v && v !== 'x' && v !== '') shifts++;
-      if (v === 'off') offs++;
+  let shifts=0,offs=0,total=employees.length*7;
+  employees.forEach(emp=>{
+    DAYS.forEach((_,di)=>{
+      const v=(schedData[emp.id+'_'+di]||'').toLowerCase().trim();
+      if(v&&v!=='x') shifts++;
+      if(v==='off') offs++;
     });
   });
-  document.getElementById('totEmp').textContent    = employees.length;
-  document.getElementById('totShifts').textContent = shifts;
-  document.getElementById('totOff').textContent    = offs;
-  const pct = total > 0 ? Math.round((shifts / total)*100) : 0;
-  document.getElementById('totPct').textContent    = total > 0 ? pct+'%' : '—';
+  const te=document.getElementById('totEmp');
+  const ts=document.getElementById('totShifts');
+  const to=document.getElementById('totOff');
+  const tp=document.getElementById('totPct');
+  if(te) te.textContent=employees.length;
+  if(ts) ts.textContent=shifts;
+  if(to) to.textContent=offs;
+  const pct=total>0?Math.round((shifts/total)*100):0;
+  if(tp) tp.textContent=total>0?pct+'%':'—';
+}
+
+function syncNotes() {
+  const notes  = document.getElementById('schedNotes').value.trim();
+  const title  = document.getElementById('notesTitle').value;
+  const pn     = document.getElementById('printNotes');
+  const pnl    = document.getElementById('printNotesLabel');
+  const pnt    = document.getElementById('printNotesText');
+  if(pnl) pnl.textContent = '📝 '+title;
+  if(pnt) pnt.textContent = notes;
+  if(pn)  pn.style.display = notes ? '' : 'none';
 }
 
 function addEmployee() {
-  const name = document.getElementById('newEmpName').value.trim();
-  const role = document.getElementById('newEmpRole').value;
-  if (!name) {
-    showToast('Please enter an employee name.');
-    document.getElementById('newEmpName').focus();
-    return;
-  }
-  employees.push({ id: empCounter++, name, role });
-  document.getElementById('newEmpName').value = '';
+  const name=document.getElementById('newEmpName').value.trim();
+  const role=document.getElementById('newEmpRole').value;
+  if(!name){showToast('Enter an employee name.');document.getElementById('newEmpName').focus();return;}
+  employees.push({id:empCounter++,name,role});
+  document.getElementById('newEmpName').value='';
   renderEmployeeList();
   renderTable();
-  showToast(name + ' added to schedule ✓');
+  triggerSave();
+  showToast(name+' added ✓');
 }
 
 function removeEmp(id) {
-  const emp = employees.find(e => e.id === id);
+  const emp=employees.find(e=>e.id===id);
   swConfirm({
-    icon: '🗑️',
-    badge: 'Remove Employee',
-    message: 'Remove ' + (emp ? emp.name : 'this employee') + ' from the schedule?',
-    sub: 'All their shifts this week will be deleted.',
-    okLabel: 'Yes, Remove',
-    okColor: '#cc2200',
-    onOk: () => {
-      employees = employees.filter(e => e.id !== id);
-      DAYS.forEach((_, di) => delete schedData[id+'_'+di]);
-      renderEmployeeList();
-      renderTable();
-      showToast((emp ? emp.name : 'Employee') + ' removed from schedule.');
+    icon:'🗑️',badge:'Remove Employee',
+    message:'Remove '+(emp?emp.name:'employee')+' from schedule?',
+    sub:'All their shifts will be deleted.',
+    okLabel:'Yes, Remove',okColor:'#cc2200',
+    onOk:()=>{
+      employees=employees.filter(e=>e.id!==id);
+      DAYS.forEach((_,di)=>delete schedData[id+'_'+di]);
+      renderEmployeeList();renderTable();triggerSave();
+      showToast((emp?emp.name:'Employee')+' removed.');
     }
   });
 }
 
-function applyPreset(val) {
-  if (!activeCell) {
-    showToast('Click a cell first, then a quick shift.');
-    return;
-  }
-  activeCell.value = val;
-  schedData[activeCell.dataset.key] = val;
-  activeCell.className = 'shift-input ' + shiftClass(val);
-  updateTotals();
+function clearAll() {
+  swConfirm({
+    icon:'🧹',badge:'Clear Schedule',
+    message:'Clear all shifts for this week?',
+    sub:'Employee names stay — only shift data is removed.',
+    okLabel:'Yes, Clear',okColor:'#cc2200',
+    onOk:()=>{schedData={};renderTable();triggerSave();showToast('Shifts cleared.');}
+  });
 }
 
-// Context menu
-function showCtx(x, y) {
-  const menu = document.getElementById('ctxMenu');
-  const mw = 200, mh = 340;
-  const left = (x + mw > window.innerWidth)  ? x - mw : x;
-  const top  = (y + mh > window.innerHeight) ? y - mh : y;
-  menu.style.left = left + 'px';
-  menu.style.top  = top  + 'px';
+/* ── Context menu ── */
+function showCtx(x,y) {
+  const menu=document.getElementById('ctxMenu');
+  const mw=200,mh=370;
+  menu.style.left=(x+mw>window.innerWidth?x-mw:x)+'px';
+  menu.style.top=(y+mh>window.innerHeight?y-mh:y)+'px';
   menu.classList.add('visible');
 }
-
-function hideCtx() { document.getElementById('ctxMenu').classList.remove('visible'); }
-
-function ctxApply(val) {
-  if (ctxCell) {
-    ctxCell.value = val;
-    schedData[ctxCell.dataset.key] = val;
-    ctxCell.className = 'shift-input ' + shiftClass(val);
-    updateTotals();
+function hideCtx(){document.getElementById('ctxMenu').classList.remove('visible');}
+function ctxApply(val){
+  if(ctxCell){
+    ctxCell.value=val;
+    schedData[ctxCell.dataset.key]=val;
+    ctxCell.className='shift-input '+shiftClass(val);
+    updateTotals();triggerSave();
   }
   hideCtx();
 }
+document.addEventListener('click',hideCtx);
+document.addEventListener('contextmenu',e=>{if(!e.target.classList.contains('shift-input'))hideCtx();});
 
-document.addEventListener('click', hideCtx);
-document.addEventListener('contextmenu', e => {
-  if (!e.target.classList.contains('shift-input')) hideCtx();
-});
+/* ══════════════════════════════════
+   SAVE SYSTEM
+══════════════════════════════════ */
+function setSaveStatus(state,msg) {
+  const dot   = document.getElementById('saveDot');
+  const label = document.getElementById('saveLabel');
+  if(!dot||!label) return;
+  dot.className = 'save-dot '+state;
+  const map = {ready:'Ready',saving:'Saving…',saved:'Saved ✓',error:'Save failed'};
+  label.textContent = msg || map[state] || state;
+}
 
-// Clear all
-function clearAll() {
-  swConfirm({
-    icon: '🧹',
-    badge: 'Clear Schedule',
-    message: 'Clear all shifts for this week?',
-    sub: 'Employee names will stay — only shift data will be removed.',
-    okLabel: 'Yes, Clear All',
-    okColor: '#cc2200',
-    onOk: () => {
-      schedData = {};
-      renderTable();
-      showToast('All shifts cleared.');
+function buildSavePayload() {
+  return {
+    title:       currentSchedTitle,
+    storeName:   document.getElementById('storeName').value,
+    managerName: document.getElementById('managerName').value,
+    weekStart:   document.getElementById('weekStart').value,
+    notes:       document.getElementById('schedNotes').value,
+    notesTitle:  document.getElementById('notesTitle').value,
+    employees,
+    schedData,
+    empCounter,
+    updatedAt:   Date.now()
+  };
+}
+
+function triggerSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  setSaveStatus('saving');
+  saveTimer = setTimeout(doSave, 1200);
+}
+
+async function doSave() {
+  const payload = buildSavePayload();
+
+  // Always save to localStorage as backup
+  localStorage.setItem('sw_sched_' + currentSchedId, JSON.stringify(payload));
+
+  // If GitHub configured, also save there
+  if (GH_OWNER && GH_REPO && GH_TOKEN) {
+    try {
+      const filename = sanitizeFilename(currentSchedTitle) + '.json';
+      const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      const body = {
+        message: 'Update: ' + currentSchedTitle,
+        content,
+        branch: GH_BRANCH
+      };
+      if (saveFileSha) body.sha = saveFileSha;
+
+      const res  = await ghAPI('contents/schedules/' + filename, 'PUT', body);
+      const json = await res.json();
+      if (json.content && json.content.sha) saveFileSha = json.content.sha;
+      setSaveStatus('saved');
+    } catch(e) {
+      setSaveStatus('error');
     }
-  });
+  } else {
+    setSaveStatus('saved','Saved locally');
+  }
 }
 
-// Export CSV
-function exportCSV() {
-  if (employees.length === 0) { showToast('No employees to export.'); return; }
-  const dates = getDates();
-  let csv = 'Employee,Role,' + DAYS.map((d,i) => d+(dates[i]?' '+dates[i]:'')).join(',') + '\n';
-  employees.forEach(emp => {
-    const row = ['"'+emp.name+'"', '"'+ROLE_LABELS[emp.role]+'"'];
-    DAYS.forEach((_,di) => row.push('"'+(schedData[emp.id+'_'+di]||'')+'"'));
-    csv += row.join(',') + '\n';
-  });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-  const store = document.getElementById('storeName').value || 'schedule';
-  a.download = store.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.csv';
-  a.click();
-  showToast('CSV exported ✓');
+/* ══════════════════════════════════
+   GITHUB API HELPER
+══════════════════════════════════ */
+function ghAPI(path, method, body) {
+  const url = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/'+path;
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + GH_TOKEN,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(url, opts);
 }
 
-// Toast
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+function sanitizeFilename(s) {
+  return s.replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase().substring(0,60)+'_'+Date.now();
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
+  const t=document.getElementById('toast');
+  t.textContent=msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  setTimeout(()=>t.classList.remove('show'),2800);
 }
 
-// Default week start to nearest Wednesday
-(function() {
-  const today = new Date();
-  const day   = today.getDay(); // 0=Sun,3=Wed
-  let diff = (3 - day + 7) % 7;
-  if (diff === 0 && today.getHours() >= 20) diff = 7;
-  const wed = new Date(today);
-  wed.setDate(today.getDate() + diff);
-  const y = wed.getFullYear();
-  const m = String(wed.getMonth()+1).padStart(2,'0');
-  const d = String(wed.getDate()).padStart(2,'0');
-  document.getElementById('weekStart').value = y+'-'+m+'-'+d;
+function setDefaultWeek() {
+  const today=new Date();const day=today.getDay();
+  let diff=(3-day+7)%7;
+  if(diff===0&&today.getHours()>=20)diff=7;
+  const wed=new Date(today);wed.setDate(today.getDate()+diff);
+  const y=wed.getFullYear();
+  const m=String(wed.getMonth()+1).padStart(2,'0');
+  const d=String(wed.getDate()).padStart(2,'0');
+  document.getElementById('weekStart').value=y+'-'+m+'-'+d;
   updateDates();
-})();
+}
 
-rebuildHead();
-updateTotals();
+/* ── Confirmation modal ── */
+function swConfirm({icon='⚠️',badge='Confirmation',message,sub='',okLabel='Confirm',okColor='#cc2200',onOk}) {
+  const modal=document.getElementById('swModal');
+  document.getElementById('swModalIcon').textContent=icon;
+  document.getElementById('swModalBadge').textContent=badge;
+  document.getElementById('swModalMsg').textContent=message;
+  document.getElementById('swModalSub').textContent=sub||'';
+  const okBtn=document.getElementById('swModalOk');
+  okBtn.textContent=okLabel;
+  okBtn.style.background=okColor;
+  modal.classList.add('open');
+  const close=()=>modal.classList.remove('open');
+  okBtn.onclick=()=>{close();onOk();};
+  document.getElementById('swModalCancel').onclick=close;
+  modal.onclick=e=>{if(e.target===modal)close();};
+}
 </script>
 </body>
 </html>
