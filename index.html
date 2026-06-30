@@ -15,73 +15,129 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#111;color:#222;min-heig
    SPLASH / INTRO ANIMATION
 ══════════════════════════════════════ */
 #splash{
-  position:fixed;inset:0;background:#111;z-index:9999;
+  position:fixed;inset:0;background:#0a0a0a;z-index:9999;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
-  animation:splashFade 0.5s ease 3.2s forwards;
+  overflow:hidden;
+  animation:splashFade 0.6s ease 3.8s forwards;
 }
 @keyframes splashFade{to{opacity:0;pointer-events:none;visibility:hidden;}}
 
-.splash-logo-wrap{
-  position:relative;display:flex;align-items:center;justify-content:center;
+/* Diagonal sweep flash across the whole screen */
+.splash-flash{
+  position:absolute;top:0;left:-60%;width:40%;height:200%;
+  background:linear-gradient(115deg,transparent 0%,rgba(255,198,0,0.18) 45%,rgba(0,140,21,0.18) 55%,transparent 100%);
+  transform:rotate(8deg);
+  animation:flashSweep 1.4s ease-out 0.15s both;
+}
+@keyframes flashSweep{
+  0%{left:-60%;opacity:0;}
+  10%{opacity:1;}
+  100%{left:130%;opacity:0;}
 }
 
-/* Glow ring */
+/* Radial pulse rings expanding outward from center */
+.splash-pulse-ring{
+  position:absolute;border-radius:50%;border:2px solid rgba(255,198,0,0.5);
+  animation:pulseOut 1.8s ease-out infinite;
+}
+.splash-pulse-ring:nth-child(1){width:80px;height:80px;animation-delay:0.6s;}
+.splash-pulse-ring:nth-child(2){width:80px;height:80px;border-color:rgba(0,140,21,0.5);animation-delay:1.1s;}
+.splash-pulse-ring:nth-child(3){width:80px;height:80px;animation-delay:1.6s;}
+@keyframes pulseOut{
+  0%{width:80px;height:80px;opacity:0.9;}
+  100%{width:420px;height:420px;opacity:0;}
+}
+
+/* Floating particles */
+.splash-particle{
+  position:absolute;border-radius:50%;opacity:0;
+  animation:particleFloat 2.4s ease-out infinite;
+}
+@keyframes particleFloat{
+  0%{opacity:0;transform:translateY(0) scale(0.3);}
+  15%{opacity:1;}
+  100%{opacity:0;transform:translateY(-160px) scale(1.1);}
+}
+
+.splash-logo-wrap{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  z-index:2;
+}
+
+/* Glow ring around logo */
 .splash-ring{
   position:absolute;width:260px;height:260px;border-radius:50%;
   border:3px solid transparent;
   background:conic-gradient(from 0deg,#FFC600,#008C15,#FFC600) border-box;
   -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
-  animation:ringSpinIn 1s ease 0.2s both;
+  animation:ringSpinIn 1s cubic-bezier(0.34,1.56,0.64,1) 0.15s both, ringSlowSpin 6s linear 1.15s infinite;
   opacity:0;
 }
 @keyframes ringSpinIn{
-  0%{opacity:0;transform:scale(0.5) rotate(-180deg);}
+  0%{opacity:0;transform:scale(0.4) rotate(-220deg);}
   100%{opacity:1;transform:scale(1) rotate(0deg);}
 }
+@keyframes ringSlowSpin{to{transform:rotate(360deg);}}
 
-/* Logo image */
+/* Logo image — slides in from below with bounce + slight rotation settle */
 .splash-img{
-  width:220px;height:auto;
-  animation:logoPopIn 0.7s cubic-bezier(0.175,0.885,0.32,1.275) 0.5s both;
-  filter:drop-shadow(0 0 40px rgba(255,198,0,0.6));
+  width:230px;height:auto;
+  opacity:0;
+  animation:logoDropIn 0.85s cubic-bezier(0.18,0.89,0.32,1.28) 0.35s forwards,
+            logoGlowPulse 1.6s ease-in-out 1.3s infinite;
 }
-@keyframes logoPopIn{
-  0%{opacity:0;transform:scale(0.3);}
-  60%{transform:scale(1.08);}
-  100%{opacity:1;transform:scale(1);}
+@keyframes logoDropIn{
+  0%{opacity:0;transform:translateY(-70px) scale(0.5) rotate(-8deg);}
+  55%{opacity:1;transform:translateY(8px) scale(1.06) rotate(2deg);}
+  75%{transform:translateY(-4px) scale(0.99) rotate(-1deg);}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0deg);}
+}
+@keyframes logoGlowPulse{
+  0%,100%{filter:drop-shadow(0 0 28px rgba(255,198,0,0.55));}
+  50%{filter:drop-shadow(0 0 48px rgba(0,140,21,0.55));}
 }
 
-/* Tagline */
+/* Tagline — letter by letter reveal feel via clip + slide */
+.splash-tagline-wrap{
+  margin-top:30px;overflow:hidden;
+}
 .splash-tagline{
-  margin-top:32px;font-size:11px;letter-spacing:4px;text-transform:uppercase;
-  color:#555;font-weight:600;
-  animation:taglineIn 0.6s ease 1.3s both;
+  font-size:12px;letter-spacing:5px;text-transform:uppercase;
+  color:#888;font-weight:700;
+  transform:translateY(100%);
+  animation:taglineRise 0.6s cubic-bezier(0.16,1,0.3,1) 1.15s forwards;
 }
-@keyframes taglineIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes taglineRise{to{transform:translateY(0);}}
 
-/* Yellow bar sweep */
+/* Yellow/green bar sweep underline */
+.splash-bar-track{
+  position:relative;width:140px;height:3px;margin-top:18px;
+  background:#1c1c1c;border-radius:4px;overflow:hidden;
+}
 .splash-bar{
-  position:absolute;bottom:0;left:0;height:4px;
+  position:absolute;left:0;top:0;height:100%;
   background:linear-gradient(90deg,#FFC600,#008C15);
-  animation:barGrow 1s ease 1.6s both;
+  animation:barGrow 0.9s cubic-bezier(0.65,0,0.35,1) 1.5s both;
   width:0;
 }
 @keyframes barGrow{to{width:100%;}}
 
 /* Dots loader */
 .splash-dots{
-  margin-top:24px;display:flex;gap:8px;
-  animation:taglineIn 0.4s ease 1.8s both;
+  margin-top:22px;display:flex;gap:8px;
+  opacity:0;
+  animation:taglineIn 0.4s ease 2.1s forwards;
 }
+@keyframes taglineIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .splash-dots span{
-  width:8px;height:8px;border-radius:50%;background:#333;
-  animation:dotPulse 0.8s ease infinite;
+  width:7px;height:7px;border-radius:50%;background:#333;
+  animation:dotPulse 0.9s ease infinite;
 }
-.splash-dots span:nth-child(1){animation-delay:2s;background:#FFC600;}
-.splash-dots span:nth-child(2){animation-delay:2.15s;background:#888;}
-.splash-dots span:nth-child(3){animation-delay:2.3s;background:#008C15;}
-@keyframes dotPulse{0%,100%{transform:scale(1);opacity:0.4;}50%{transform:scale(1.4);opacity:1;}}
+.splash-dots span:nth-child(1){animation-delay:2.2s;background:#FFC600;}
+.splash-dots span:nth-child(2){animation-delay:2.35s;background:#aaa;}
+.splash-dots span:nth-child(3){animation-delay:2.5s;background:#008C15;}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:0.35;}50%{transform:scale(1.5);opacity:1;}}
 
 /* ══════════════════════════════════════
    APP WRAPPER (hidden until splash done)
@@ -539,13 +595,22 @@ table.sched-table tbody td:first-child{text-align:left;padding-left:12px;backgro
 
 <!-- ══ SPLASH ══ -->
 <div id="splash">
-  <div class="splash-ring"></div>
+  <div class="splash-flash"></div>
+  <div class="splash-pulse-ring"></div>
+  <div class="splash-pulse-ring"></div>
+  <div class="splash-pulse-ring"></div>
+  <div class="splash-particle" style="width:6px;height:6px;background:#FFC600;left:38%;top:55%;animation-delay:0.9s"></div>
+  <div class="splash-particle" style="width:4px;height:4px;background:#008C15;left:60%;top:58%;animation-delay:1.2s"></div>
+  <div class="splash-particle" style="width:5px;height:5px;background:#FFC600;left:46%;top:62%;animation-delay:1.5s"></div>
+  <div class="splash-particle" style="width:4px;height:4px;background:#008C15;left:55%;top:50%;animation-delay:1.8s"></div>
+  <div class="splash-particle" style="width:6px;height:6px;background:#FFC600;left:50%;top:60%;animation-delay:2.1s"></div>
   <div class="splash-logo-wrap">
+    <div class="splash-ring"></div>
     <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="splash-img">
   </div>
-  <div class="splash-tagline">Schedule Maker</div>
+  <div class="splash-tagline-wrap"><div class="splash-tagline">Schedule Maker</div></div>
+  <div class="splash-bar-track"><div class="splash-bar"></div></div>
   <div class="splash-dots"><span></span><span></span><span></span></div>
-  <div class="splash-bar"></div>
 </div>
 
 <!-- ══ APP ══ -->
@@ -923,6 +988,7 @@ let empCounter  = 1;
 let ctxCell     = null;
 let currentSchedId  = null;
 let currentSchedTitle = '';
+let currentSchedFile  = ''; // GitHub filename, generated once per schedule and reused
 let saveTimer   = null;
 let saveFileSha = null; // for GitHub update
 
@@ -943,7 +1009,7 @@ setTimeout(() => {
   } else {
     showLogin();
   }
-}, 3600);
+}, 4200);
 
 /* ══════════════════════════════════
    AUTH
@@ -1064,7 +1130,7 @@ async function refreshScheduleList() {
     if (!Array.isArray(files)) throw new Error('Unexpected response from GitHub');
     statusEl.innerHTML = '✅ Synced with GitHub';
     statusEl.className = 'gh-status ok';
-    renderScheduleList(listEl, files.filter(f => f.name.endsWith('.json')));
+    await renderScheduleList(listEl, files.filter(f => f.name.endsWith('.json')));
   } catch(e) {
     statusEl.innerHTML = '⚠️ Could not connect to GitHub — showing local saves';
     statusEl.className = 'gh-status err';
@@ -1098,15 +1164,31 @@ function renderLocalList(listEl, items) {
   });
 }
 
-function renderScheduleList(listEl, files) {
+async function renderScheduleList(listEl, files) {
   if (files.length === 0) {
     listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
     return;
   }
+  listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">⏳</div><p>Loading schedules…</p></div>';
+
+  // Fetch real title/date from inside each file (not the random filename)
+  const items = await Promise.all(files.map(async f => {
+    try {
+      const res = await ghAPI('contents/schedules/' + f.name, 'GET');
+      if (!res.ok) throw new Error('fetch failed');
+      const json = await res.json();
+      const data = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
+      return { filename: f.name, sha: json.sha, title: data.title || f.name.replace('.json',''), updatedAt: data.updatedAt };
+    } catch(e) {
+      return { filename: f.name, sha: f.sha, title: f.name.replace('.json','').replace(/_/g,' '), updatedAt: null };
+    }
+  }));
+
+  items.sort((a,b) => (b.updatedAt||0)-(a.updatedAt||0));
+
   listEl.innerHTML = '';
-  files.forEach(f => {
-    const name = f.name.replace('.json','').replace(/_/g,' ');
-    const div  = makeSchedItem(name, null, () => openGhSched(f.name, f.sha), () => deleteGhSched(f.name, f.sha));
+  items.forEach(it => {
+    const div = makeSchedItem(it.title, it.updatedAt, () => openGhSched(it.filename, it.sha), () => deleteGhSched(it.filename, it.sha));
     listEl.appendChild(div);
   });
 }
@@ -1152,12 +1234,14 @@ function createSchedule() {
   const id = 'sched_' + Date.now();
   currentSchedId    = id;
   currentSchedTitle = title;
+  currentSchedFile  = sanitizeFilename(title) + '.json'; // generated ONCE, reused on every save
   // Reset builder state
   employees  = [];
   schedData  = {};
   empCounter = 1;
   saveFileSha = null;
   openBuilder(title);
+  triggerSave(); // save immediately so it shows up in the list right away
 }
 
 /* ── Open schedule ── */
@@ -1167,6 +1251,8 @@ function openLocalSched(id) {
   const data = JSON.parse(raw);
   currentSchedId    = id;
   currentSchedTitle = data.title || id;
+  currentSchedFile  = data.file || (sanitizeFilename(currentSchedTitle) + '.json');
+  saveFileSha = null; // will be re-fetched from GitHub on next save if configured
   loadBuilderData(data);
   openBuilder(currentSchedTitle);
 }
@@ -1175,11 +1261,13 @@ async function openGhSched(filename, sha) {
   showToast('Loading...');
   try {
     const res  = await ghAPI('contents/schedules/' + filename, 'GET');
+    if (!res.ok) throw new Error('GitHub error ' + res.status);
     const json = await res.json();
-    const data = JSON.parse(atob(json.content.replace(/\n/g,'')));
-    saveFileSha = json.sha;
-    currentSchedId    = filename.replace('.json','');
-    currentSchedTitle = data.title || currentSchedId;
+    const data = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
+    saveFileSha       = json.sha;
+    currentSchedId    = data.title ? ('sched_' + (data.updatedAt || Date.now())) : filename.replace('.json','');
+    currentSchedTitle = data.title || filename.replace('.json','').replace(/_/g,' ');
+    currentSchedFile  = filename; // reuse the exact same file on every future save
     loadBuilderData(data);
     openBuilder(currentSchedTitle);
   } catch(e) {
@@ -1275,11 +1363,11 @@ function deleteGhSched(filename, sha) {
           throw new Error(errBody.message || ('GitHub error '+res.status));
         }
 
-        // Also clear any local cached copy with a matching title
+        // Also clear any local cached copy that points to this same GitHub file
         Object.keys(localStorage).filter(k => k.startsWith('sw_sched_')).forEach(k => {
           try {
             const d = JSON.parse(localStorage.getItem(k));
-            if (sanitizeBase(d.title) === sanitizeBase(filename.replace('.json',''))) {
+            if (d.file === filename) {
               localStorage.removeItem(k);
             }
           } catch(_) {}
@@ -1292,10 +1380,6 @@ function deleteGhSched(filename, sha) {
       }
     }
   });
-}
-
-function sanitizeBase(s) {
-  return String(s||'').replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase();
 }
 
 /* ══════════════════════════════════
@@ -1521,6 +1605,7 @@ function setSaveStatus(state,msg) {
 function buildSavePayload() {
   return {
     title:       currentSchedTitle,
+    file:        currentSchedFile,
     storeName:   document.getElementById('storeName').value,
     managerName: document.getElementById('managerName').value,
     weekStart:   document.getElementById('weekStart').value,
@@ -1548,16 +1633,29 @@ async function doSave() {
   // If GitHub configured, also save there
   if (GH_OWNER && GH_REPO && GH_TOKEN) {
     try {
-      const filename = sanitizeFilename(currentSchedTitle) + '.json';
-      const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      if (!currentSchedFile) currentSchedFile = sanitizeFilename(currentSchedTitle) + '.json';
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
       const body = {
         message: 'Update: ' + currentSchedTitle,
         content,
         branch: GH_BRANCH
       };
+      // Always fetch the latest sha right before saving to avoid 409 conflicts
+      try {
+        const existing = await ghAPI('contents/schedules/' + currentSchedFile, 'GET');
+        if (existing.ok) {
+          const existingJson = await existing.json();
+          if (existingJson && existingJson.sha) saveFileSha = existingJson.sha;
+        }
+      } catch(_) { /* file probably doesn't exist yet, that's fine */ }
+
       if (saveFileSha) body.sha = saveFileSha;
 
-      const res  = await ghAPI('contents/schedules/' + filename, 'PUT', body);
+      const res  = await ghAPI('contents/schedules/' + currentSchedFile, 'PUT', body);
+      if (!res.ok) {
+        const errBody = await res.json().catch(()=>({}));
+        throw new Error(errBody.message || ('GitHub error ' + res.status));
+      }
       const json = await res.json();
       if (json.content && json.content.sha) saveFileSha = json.content.sha;
       setSaveStatus('saved');
@@ -1590,7 +1688,10 @@ function ghAPI(path, method, body) {
    HELPERS
 ══════════════════════════════════ */
 function sanitizeFilename(s) {
-  return s.replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase().substring(0,60)+'_'+Date.now();
+  const base = String(s||'untitled').replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase().substring(0,50);
+  // Short unique suffix so two schedules with the same title don't collide
+  const suffix = Math.random().toString(36).substring(2,8);
+  return base + '_' + suffix;
 }
 
 function escHtml(s) {
