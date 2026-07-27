@@ -4,898 +4,533 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Subway — Schedule Maker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ══════════════════════════════════════
-   RESET & BASE
-══════════════════════════════════════ */
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#111;color:#222;min-height:100vh;overflow-x:hidden;}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',Arial,sans-serif; background:#ebebeb; color:#222; min-height:100vh; overflow-x:hidden; }
 
-/* ══════════════════════════════════════
-   SPLASH / INTRO ANIMATION
-══════════════════════════════════════ */
-#splash{
-  position:fixed;inset:0;background:#0a0a0a;z-index:9999;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
-  overflow:hidden;
-  animation:splashFade 0.6s ease 3.8s forwards;
+/* ── LANGUAGE TOGGLE ── */
+#langToggle {
+  position:fixed; top:16px; right:16px; z-index:9990;
+  background:#111; color:#FFC600; border:1.5px solid #FFC600;
+  padding:7px 14px; border-radius:20px; font-size:12px; font-weight:800;
+  cursor:pointer; transition:all 0.15s; display:none;
 }
-@keyframes splashFade{to{opacity:0;pointer-events:none;visibility:hidden;}}
+#langToggle.show { display:flex; align-items:center; gap:6px; }
+#langToggle:hover { background:#FFC600; color:#111; }
 
-/* Diagonal sweep flash across the whole screen */
-.splash-flash{
-  position:absolute;top:0;left:-60%;width:40%;height:200%;
-  background:linear-gradient(115deg,transparent 0%,rgba(255,198,0,0.18) 45%,rgba(0,140,21,0.18) 55%,transparent 100%);
-  transform:rotate(8deg);
-  animation:flashSweep 1.4s ease-out 0.15s both;
+/* ── SPLASH ── */
+#splashScreen {
+  position:fixed; inset:0; background:#0a0a0a; z-index:99999;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
 }
-@keyframes flashSweep{
-  0%{left:-60%;opacity:0;}
-  10%{opacity:1;}
-  100%{left:130%;opacity:0;}
+.splash-bar {
+  position:absolute; top:0; left:0; width:100%; height:8px;
+  background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);
+  transform:translateX(-100%); animation:barIn 1.1s ease forwards 0.15s;
 }
+.splash-bar.bot { top:auto; bottom:0; }
+@keyframes barIn { to { transform:translateX(0); } }
+.splash-logo-wrap { position:relative; display:flex; align-items:center; justify-content:center; }
+.splash-logo { height:120px; opacity:0; transform:scale(0.4) rotate(-8deg); animation:logoPop 0.7s cubic-bezier(.34,1.56,.64,1) forwards 0.35s; filter:drop-shadow(0 0 25px rgba(255,198,0,0.2)); }
+@keyframes logoPop { 0%{opacity:0;transform:scale(0.4) rotate(-8deg);} 60%{opacity:1;transform:scale(1.12) rotate(3deg);} 100%{opacity:1;transform:scale(1) rotate(0);} }
+.splash-ring { position:absolute; border-radius:50%; border:2px solid rgba(255,198,0,0.35); width:160px; height:160px; opacity:0; animation:ringOut 1.6s ease-out forwards 0.9s; }
+.splash-ring.r2 { width:220px; height:220px; animation-delay:1.05s; border-color:rgba(0,140,21,0.35); }
+@keyframes ringOut { 0%{transform:scale(0.6);opacity:0.9;} 100%{transform:scale(1.6);opacity:0;} }
+.splash-tag { margin-top:26px; font-size:11px; letter-spacing:4px; text-transform:uppercase; color:#888; opacity:0; animation:fadeUp 0.6s ease forwards 1.25s; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+#splashScreen.out { animation:splashFade 0.5s ease forwards; }
+@keyframes splashFade { to{opacity:0;visibility:hidden;} }
 
-/* Radial pulse rings expanding outward from center */
-.splash-pulse-ring{
-  position:absolute;border-radius:50%;border:2px solid rgba(255,198,0,0.5);
-  animation:pulseOut 1.8s ease-out infinite;
-}
-.splash-pulse-ring:nth-child(1){width:80px;height:80px;animation-delay:0.6s;}
-.splash-pulse-ring:nth-child(2){width:80px;height:80px;border-color:rgba(0,140,21,0.5);animation-delay:1.1s;}
-.splash-pulse-ring:nth-child(3){width:80px;height:80px;animation-delay:1.6s;}
-@keyframes pulseOut{
-  0%{width:80px;height:80px;opacity:0.9;}
-  100%{width:420px;height:420px;opacity:0;}
-}
+/* ── COMMON ── */
+.screen { position:fixed; inset:0; display:none; }
+.screen.visible { display:flex; }
 
-/* Floating particles */
-.splash-particle{
-  position:absolute;border-radius:50%;opacity:0;
-  animation:particleFloat 2.4s ease-out infinite;
+/* ── LOGIN ── */
+#loginScreen { background:#111; align-items:center; justify-content:center; }
+.login-card { background:#fff; border-radius:16px; width:380px; max-width:92vw; overflow:hidden; box-shadow:0 25px 70px rgba(0,0,0,0.45); animation:fadeUp 0.4s ease; }
+.card-topbar { height:6px; background:linear-gradient(90deg,#FFC600 50%,#008C15 50%); }
+.login-head { padding:28px 28px 16px; text-align:center; background:#fafafa; border-bottom:1px solid #eee; }
+.login-head img { height:46px; margin-bottom:12px; }
+.login-head h2 { font-size:15px; font-weight:800; color:#111; letter-spacing:1px; text-transform:uppercase; }
+.login-head p { font-size:11px; color:#aaa; margin-top:3px; }
+.login-body { padding:20px 28px 26px; display:flex; flex-direction:column; gap:11px; }
+.field-group { display:flex; flex-direction:column; gap:4px; }
+.field-group label { font-size:11px; color:#999; font-weight:600; letter-spacing:0.3px; }
+.field-group input {
+  padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:7px;
+  font-size:13px; font-family:inherit; outline:none; background:#fafafa; transition:border 0.15s;
 }
-@keyframes particleFloat{
-  0%{opacity:0;transform:translateY(0) scale(0.3);}
-  15%{opacity:1;}
-  100%{opacity:0;transform:translateY(-160px) scale(1.1);}
-}
+.field-group input:focus { border-color:#008C15; background:#fff; }
+.field-error { font-size:12px; color:#cc2200; font-weight:600; min-height:15px; text-align:center; }
+.login-btn { background:#008C15; color:#fff; border:none; padding:12px; border-radius:8px; font-weight:800; font-size:13px; letter-spacing:0.5px; text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
+.login-btn:hover { background:#006b10; }
+.card-botbar { height:4px; background:linear-gradient(90deg,#008C15 50%,#FFC600 50%); }
 
-.splash-logo-wrap{
-  position:relative;display:flex;align-items:center;justify-content:center;
-  z-index:2;
-}
+/* ── DASHBOARD ── */
+#dashboardScreen { background:#ebebeb; flex-direction:column; }
+.dash-topbar { background:#111; height:74px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:3px solid #FFC600; flex-shrink:0; }
+.dash-topbar-left { display:flex; align-items:center; gap:14px; }
+.dash-topbar-left img { height:44px; }
+.dash-topbar-left span { color:#aaa; font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+.dash-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:32px; padding:28px; overflow-y:auto; }
+.dash-welcome h1 { font-size:23px; font-weight:900; color:#222; text-align:center; }
+.dash-welcome p { font-size:13px; color:#999; text-align:center; margin-top:5px; }
+.dash-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.dash-card { width:215px; background:#fff; border-radius:13px; padding:28px 20px; text-align:center; box-shadow:0 4px 22px rgba(0,0,0,0.08); cursor:pointer; transition:all 0.18s; border:2px solid transparent; }
+.dash-card:hover { transform:translateY(-4px); box-shadow:0 10px 28px rgba(0,0,0,0.14); border-color:#FFC600; }
+.dash-card .dc-icon { font-size:38px; margin-bottom:12px; }
+.dash-card h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#111; font-weight:800; }
+.dash-card p { font-size:11px; color:#999; margin-top:6px; line-height:1.5; }
+.dash-status { font-size:11px; color:#aaa; text-align:center; }
+.dash-status.ok { color:#008C15; font-weight:700; }
+.dash-status.bad { color:#cc2200; font-weight:700; }
 
-/* Glow ring around logo */
-.splash-ring{
-  position:absolute;width:260px;height:260px;border-radius:50%;
-  border:3px solid transparent;
-  background:conic-gradient(from 0deg,#FFC600,#008C15,#FFC600) border-box;
-  -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;
-  animation:ringSpinIn 1s cubic-bezier(0.34,1.56,0.64,1) 0.15s both, ringSlowSpin 6s linear 1.15s infinite;
-  opacity:0;
-}
-@keyframes ringSpinIn{
-  0%{opacity:0;transform:scale(0.4) rotate(-220deg);}
-  100%{opacity:1;transform:scale(1) rotate(0deg);}
-}
-@keyframes ringSlowSpin{to{transform:rotate(360deg);}}
+/* ── BTN ── */
+.btn { padding:8px 16px; border-radius:6px; border:none; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:all 0.15s; letter-spacing:0.5px; text-transform:uppercase; }
+.btn-green { background:#008C15; color:#fff; } .btn-green:hover { background:#006b10; }
+.btn-yellow { background:#FFC600; color:#111; } .btn-yellow:hover { background:#e6b200; }
+.btn-outline { background:transparent; color:#ccc; border:1px solid #555; } .btn-outline:hover { background:#2a2a2a; }
+.btn-red { background:#cc2200; color:#fff; } .btn-red:hover { background:#aa1a00; }
+.btn-sm { padding:5px 12px; font-size:11px; }
 
-/* Logo image — slides in from below with bounce + slight rotation settle */
-.splash-img{
-  width:230px;height:auto;
-  opacity:0;
-  animation:logoDropIn 0.85s cubic-bezier(0.18,0.89,0.32,1.28) 0.35s forwards,
-            logoGlowPulse 1.6s ease-in-out 1.3s infinite;
-}
-@keyframes logoDropIn{
-  0%{opacity:0;transform:translateY(-70px) scale(0.5) rotate(-8deg);}
-  55%{opacity:1;transform:translateY(8px) scale(1.06) rotate(2deg);}
-  75%{transform:translateY(-4px) scale(0.99) rotate(-1deg);}
-  100%{opacity:1;transform:translateY(0) scale(1) rotate(0deg);}
-}
-@keyframes logoGlowPulse{
-  0%,100%{filter:drop-shadow(0 0 28px rgba(255,198,0,0.55));}
-  50%{filter:drop-shadow(0 0 48px rgba(0,140,21,0.55));}
-}
+/* ── OVERLAYS ── */
+.overlay { position:fixed; inset:0; z-index:8000; background:rgba(0,0,0,0.45); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; }
+.overlay.visible { display:flex; }
+.panel { background:#fff; border-radius:16px; width:440px; max-width:93vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.25); animation:fadeUp 0.2s ease; }
+.panel-bar { height:5px; background:linear-gradient(90deg,#FFC600 50%,#008C15 50%); flex-shrink:0; }
+.panel-head { padding:18px 22px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #eee; flex-shrink:0; }
+.panel-head img { height:30px; }
+.panel-head h3 { font-size:14px; text-transform:uppercase; letter-spacing:1px; color:#111; font-weight:800; }
+.panel-body { padding:20px 22px; overflow-y:auto; display:flex; flex-direction:column; gap:11px; flex:1; }
+.panel-foot { padding:14px 22px; display:flex; gap:9px; justify-content:flex-end; border-top:1px solid #eee; flex-shrink:0; }
 
-/* Tagline — letter by letter reveal feel via clip + slide */
-.splash-tagline-wrap{
-  margin-top:30px;overflow:hidden;
-}
-.splash-tagline{
-  font-size:12px;letter-spacing:5px;text-transform:uppercase;
-  color:#888;font-weight:700;
-  transform:translateY(100%);
-  animation:taglineRise 0.6s cubic-bezier(0.16,1,0.3,1) 1.15s forwards;
-}
-@keyframes taglineRise{to{transform:translateY(0);}}
+.sched-item { display:flex; align-items:center; gap:10px; padding:11px 14px; background:#f7f7f7; border-radius:9px; cursor:pointer; border:1.5px solid transparent; transition:all 0.12s; }
+.sched-item:hover { background:#eefcef; border-color:#a3d9a3; }
+.sched-item-info { flex:1; }
+.sched-item-info .si-title { font-size:13px; font-weight:700; color:#222; }
+.sched-item-info .si-meta { font-size:10.5px; color:#aaa; margin-top:2px; }
+.sched-item-actions { display:flex; gap:6px; }
+.sched-empty { text-align:center; color:#bbb; font-size:13px; padding:28px 0; }
 
-/* Yellow/green bar sweep underline */
-.splash-bar-track{
-  position:relative;width:140px;height:3px;margin-top:18px;
-  background:#1c1c1c;border-radius:4px;overflow:hidden;
-}
-.splash-bar{
-  position:absolute;left:0;top:0;height:100%;
-  background:linear-gradient(90deg,#FFC600,#008C15);
-  animation:barGrow 0.9s cubic-bezier(0.65,0,0.35,1) 1.5s both;
-  width:0;
-}
-@keyframes barGrow{to{width:100%;}}
+/* ── ADMIN SCREEN ── */
+#adminScreen { background:#ebebeb; flex-direction:column; overflow:hidden; }
+.admin-topbar { background:#111; height:74px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:3px solid #FFC600; flex-shrink:0; }
+.admin-topbar-left { display:flex; align-items:center; gap:14px; }
+.admin-topbar-left img { height:44px; }
+.admin-topbar-title { display:flex; flex-direction:column; }
+.admin-topbar-title span:first-child { color:#FFC600; font-size:13px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.admin-topbar-title span:last-child { color:#aaa; font-size:10px; letter-spacing:1px; }
+.admin-body { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:16px; }
+.admin-section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#aaa; font-weight:700; margin-bottom:4px; }
+.user-card { background:#fff; border-radius:11px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 10px rgba(0,0,0,0.06); border:1.5px solid transparent; transition:all 0.15s; }
+.user-card:hover { border-color:#FFC600; }
+.user-card-info { display:flex; flex-direction:column; gap:2px; }
+.user-card-name { font-size:14px; font-weight:700; color:#222; }
+.user-card-email { font-size:11px; color:#aaa; }
+.user-card-meta { font-size:10px; color:#bbb; margin-top:2px; }
+.badge-admin { background:#FFF8DC; color:#b38600; border:1px solid #FFC600; border-radius:20px; padding:2px 9px; font-size:9px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-left:8px; }
+.badge-user { background:#e0f5e0; color:#2a8a2a; border:1px solid #66bb66; border-radius:20px; padding:2px 9px; font-size:9px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-left:8px; }
 
-/* Dots loader */
-.splash-dots{
-  margin-top:22px;display:flex;gap:8px;
-  opacity:0;
-  animation:taglineIn 0.4s ease 2.1s forwards;
-}
-@keyframes taglineIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.splash-dots span{
-  width:7px;height:7px;border-radius:50%;background:#333;
-  animation:dotPulse 0.9s ease infinite;
-}
-.splash-dots span:nth-child(1){animation-delay:2.2s;background:#FFC600;}
-.splash-dots span:nth-child(2){animation-delay:2.35s;background:#aaa;}
-.splash-dots span:nth-child(3){animation-delay:2.5s;background:#008C15;}
-@keyframes dotPulse{0%,100%{transform:scale(1);opacity:0.35;}50%{transform:scale(1.5);opacity:1;}}
+/* ── EDITOR SCREEN ── */
+#editorScreen { flex-direction:column; overflow:hidden; }
+.topbar { background:#111; display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:74px; flex-shrink:0; border-bottom:3px solid #FFC600; box-shadow:0 3px 12px rgba(0,0,0,0.4); }
+.topbar-left { display:flex; align-items:center; gap:18px; }
+.topbar-divider { width:1px; height:28px; background:#444; }
+.topbar-subtitle { font-size:11px; color:#aaa; letter-spacing:2px; text-transform:uppercase; }
+.save-indicator { font-size:11px; padding:5px 11px; border-radius:20px; color:#ccc; display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); }
+.save-indicator .dot { width:7px; height:7px; border-radius:50%; background:#666; }
+.save-indicator.saving .dot { background:#FFC600; animation:pulse 0.8s infinite; }
+.save-indicator.saved .dot { background:#008C15; }
+.save-indicator.error .dot { background:#cc2200; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
-/* ══════════════════════════════════════
-   APP WRAPPER (hidden until splash done)
-══════════════════════════════════════ */
-#app{
-  opacity:0;transition:opacity 0.5s ease;min-height:100vh;
-  background:#ebebeb;
-}
-#app.visible{opacity:1;}
+.main-wrap { display:flex; flex:1; overflow:hidden; }
+.sidebar { width:258px; min-width:258px; background:#fff; border-right:1px solid #ddd; padding:14px 12px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+.sec-title { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:#bbb; font-weight:700; margin-bottom:7px; display:flex; align-items:center; gap:6px; }
+.sec-title::after { content:''; flex:1; height:1px; background:#eee; }
+.fg { display:flex; flex-direction:column; gap:4px; margin-bottom:7px; }
+.fg label { font-size:11px; color:#999; font-weight:600; letter-spacing:0.3px; }
+.fg input, .fg select { padding:8px 10px; border:1.5px solid #e0e0e0; border-radius:6px; font-size:13px; outline:none; background:#fafafa; font-family:inherit; transition:border 0.15s; }
+.fg input:focus, .fg select:focus { border-color:#008C15; background:#fff; }
+.emp-list { display:flex; flex-direction:column; gap:5px; max-height:220px; overflow-y:auto; }
+.emp-chip { display:flex; align-items:center; justify-content:space-between; background:#f5f5f5; border-radius:7px; padding:7px 10px; font-size:13px; font-weight:600; border:1px solid #eee; transition:border-color 0.1s; }
+.emp-chip:hover { border-color:#ccc; }
+.role-badge { font-size:9px; padding:2px 7px; border-radius:20px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
+.role-manager { background:#FFF8DC; color:#b38600; border:1px solid #FFC600; }
+.role-full { background:#e0f5e0; color:#2a8a2a; border:1px solid #66bb66; }
+.role-part { background:#ddeeff; color:#3366bb; border:1px solid #88aaee; }
+.role-training { background:#ffeedd; color:#cc6622; border:1px solid #ffaa77; }
+.chip-right { display:flex; align-items:center; gap:6px; }
+.chip-del { background:none; border:none; color:#cc0000; font-size:17px; cursor:pointer; opacity:0.4; transition:opacity 0.1s; }
+.chip-del:hover { opacity:1; }
+.add-emp-form { display:flex; flex-direction:column; gap:7px; padding:11px; background:#f8f8f8; border-radius:8px; border:1.5px dashed #ddd; margin-top:5px; }
+.add-emp-form input, .add-emp-form select { padding:8px 10px; border:1.5px solid #e0e0e0; border-radius:6px; font-size:13px; background:#fff; font-family:inherit; outline:none; }
+.add-emp-form input:focus, .add-emp-form select:focus { border-color:#008C15; }
+hr.div { border:none; border-top:1px solid #eee; }
+.notes-ta { width:100%; height:86px; padding:9px 11px; border:1.5px solid #e0e0e0; border-radius:6px; font-size:12px; font-family:inherit; resize:vertical; outline:none; background:#fafafa; line-height:1.5; }
+.notes-ta:focus { border-color:#008C15; background:#fff; }
 
-/* ══════════════════════════════════════
-   LOGIN SCREEN
-══════════════════════════════════════ */
-#loginScreen{
-  min-height:100vh;background:#111;display:flex;
-  align-items:center;justify-content:center;
-  animation:screenIn 0.4s ease;
-}
-@keyframes screenIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.content { flex:1; padding:20px; overflow-x:auto; overflow-y:auto; }
+.empty-state { text-align:center; padding:60px 20px; color:#bbb; }
+.empty-state .es-icon { font-size:48px; margin-bottom:12px; }
+.empty-state h3 { font-size:16px; color:#999; margin-bottom:6px; }
+.empty-state p { font-size:13px; }
 
-.login-card{
-  background:#1a1a1a;border-radius:18px;padding:40px 36px;
-  width:360px;max-width:94vw;
-  box-shadow:0 24px 64px rgba(0,0,0,0.5);
-  border:1px solid #2a2a2a;
-}
+/* ── SCHEDULE TABLE ── */
+.schedule-wrap { background:#fff; border-radius:10px; box-shadow:0 2px 16px rgba(0,0,0,0.08); overflow:hidden; min-width:840px; }
+.sched-head { background:#111; display:flex; align-items:stretch; }
+.sched-head-y { background:#FFC600; width:8px; flex-shrink:0; }
+.sched-head-g { background:#008C15; width:8px; flex-shrink:0; }
+.sched-head-inner { flex:1; padding:15px 20px; display:flex; align-items:center; justify-content:space-between; }
+.sched-head-title h2 { font-size:17px; font-weight:900; color:#FFC600; letter-spacing:1px; text-transform:uppercase; }
+.sched-head-title .week-line { font-size:11px; color:#aaa; margin-top:2px; }
+.sched-head-right { text-align:right; }
+.sched-head-right .mgr-lbl { font-size:10px; color:#aaa; letter-spacing:1px; text-transform:uppercase; }
+.sched-head-right .mgr-name { font-size:14px; font-weight:700; color:#fff; margin-top:2px; }
+.sched-head-right .store-name { font-size:11px; color:#aaa; margin-top:1px; }
 
-.login-logo{width:160px;display:block;margin:0 auto 28px;}
+table.st { width:100%; border-collapse:collapse; font-size:14px; }
+table.st thead tr { background:#008C15; }
+table.st thead th { color:#fff; font-weight:700; padding:11px 7px; text-align:center; font-size:12px; letter-spacing:0.5px; border-right:1px solid rgba(255,255,255,0.12); text-transform:uppercase; }
+table.st thead th:first-child { text-align:left; padding-left:14px; width:145px; background:#006b10; font-size:11px; letter-spacing:1px; }
+table.st thead th .th-day { display:block; font-size:13px; font-weight:800; }
+table.st thead th .th-date { display:block; font-size:10px; font-weight:400; opacity:0.85; margin-top:2px; }
+table.st tbody tr { border-bottom:1px solid #e8e8e8; transition:background 0.1s; }
+table.st tbody tr:nth-child(even) { background:#fafffe; }
+table.st tbody tr:hover { background:#f0fff4; }
+table.st tbody td { padding:9px 6px; text-align:center; border-right:1px solid #eee; vertical-align:middle; min-width:106px; }
+table.st tbody td:first-child { text-align:left; padding-left:13px; background:#f8fdf8 !important; border-right:2px solid #d4ead4; font-weight:700; font-size:13px; }
+.emp-name-wrap { display:flex; flex-direction:column; gap:1px; }
+.emp-role-lbl { font-size:10px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; opacity:0.5; }
+.shift-input { width:100%; min-width:88px; padding:7px 5px; border:1.5px solid transparent; border-radius:5px; font-size:13px; text-align:center; background:transparent; outline:none; font-family:inherit; cursor:text; transition:all 0.12s; font-weight:600; }
+.shift-input::placeholder { color:#ccc; font-weight:400; }
+.shift-input:hover { background:#f0fff4; border-color:#008C15; }
+.shift-input:focus { background:#fff; border-color:#008C15; box-shadow:0 0 0 3px rgba(0,140,21,0.1); }
+.sh-open { background:#e6f7e6; color:#2a882a; border-color:#a3d9a3 !important; }
+.sh-off { background:#f4f4f4; color:#aaa; border-color:#e0e0e0 !important; }
+.sh-training { background:#fff8e1; color:#cc9900; border-color:#FFE082 !important; }
+.sh-close { background:#fff0e6; color:#cc5522; border-color:#ffbb99 !important; }
+.sh-mid { background:#e6f0ff; color:#3366cc; border-color:#99bbff !important; }
+.sh-x { background:#f5f5f5; color:#ccc; border-color:#e5e5e5 !important; font-weight:700; }
 
-.login-title{
-  text-align:center;font-size:13px;font-weight:700;
-  text-transform:uppercase;letter-spacing:2px;
-  color:#555;margin-bottom:28px;
-}
+.print-notes { display:none; padding:13px 18px; border-top:2px solid #eee; background:#fffdf0; }
+.print-notes-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#999; margin-bottom:5px; }
+.print-notes-text { font-size:12px; color:#333; line-height:1.6; white-space:pre-wrap; }
 
-.login-field{margin-bottom:16px;}
-.login-field label{display:block;font-size:11px;color:#666;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase;}
-.login-field input{
-  width:100%;padding:12px 14px;background:#222;border:1.5px solid #333;
-  border-radius:8px;font-size:14px;color:#fff;outline:none;
-  font-family:inherit;transition:border 0.15s;
-}
-.login-field input:focus{border-color:#FFC600;}
+.totals-bar { display:flex; align-items:center; justify-content:space-around; background:#111; padding:12px 22px; border-top:3px solid #FFC600; }
+.total-stat { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.total-stat .t-val { font-size:21px; font-weight:900; color:#FFC600; line-height:1; }
+.total-stat .t-lbl { font-size:9px; color:#999; letter-spacing:1px; text-transform:uppercase; }
 
-.login-btn{
-  width:100%;padding:13px;background:#FFC600;color:#111;border:none;
-  border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;
-  text-transform:uppercase;letter-spacing:1px;margin-top:6px;
-  transition:all 0.15s;
-}
-.login-btn:hover{background:#e6b200;transform:translateY(-1px);}
-.login-btn:active{transform:translateY(0);}
+.legend { display:flex; gap:13px; align-items:center; flex-wrap:wrap; padding:9px 18px; background:#f8f8f8; border-top:1px solid #eee; font-size:11px; color:#777; }
+.leg-item { display:flex; align-items:center; gap:5px; }
+.leg-dot { width:10px; height:10px; border-radius:3px; }
+.leg-hint { margin-left:auto; font-size:10px; color:#ccc; font-style:italic; }
 
-.login-error{
-  background:#3a0000;color:#ff6b6b;border:1px solid #660000;
-  border-radius:6px;padding:10px 14px;font-size:12px;
-  text-align:center;margin-top:14px;display:none;font-weight:600;
-}
+/* ── CONTEXT MENU ── */
+.ctx-menu { position:fixed; background:#fff; border:1px solid #ddd; border-radius:9px; box-shadow:0 8px 28px rgba(0,0,0,0.16); min-width:190px; z-index:9999; display:none; overflow:hidden; }
+.ctx-menu.visible { display:block; }
+.ctx-head { padding:8px 14px 7px; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:#999; border-bottom:1px solid #f0f0f0; font-weight:700; background:#fafafa; }
+.ctx-item { padding:9px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:9px; color:#333; transition:background 0.08s; font-weight:500; }
+.ctx-item:hover { background:#f0fff4; }
+.ctx-item.ctx-danger { color:#cc2200; }
+.ctx-item.ctx-danger:hover { background:#fff5f5; }
 
-.login-footer{text-align:center;margin-top:20px;font-size:10px;color:#333;letter-spacing:1px;}
+/* ── TOAST ── */
+.toast { position:fixed; bottom:26px; right:26px; background:#111; color:#fff; padding:11px 18px; border-radius:8px; font-size:13px; font-weight:600; border-left:4px solid #008C15; opacity:0; transform:translateY(10px); transition:all 0.25s; z-index:9999; pointer-events:none; }
+.toast.show { opacity:1; transform:translateY(0); }
 
-/* ══════════════════════════════════════
-   DASHBOARD (schedule list screen)
-══════════════════════════════════════ */
-#dashScreen{display:none;min-height:100vh;background:#111;}
+/* ── CONFIRM MODAL ── */
+#confirmModal { position:fixed; inset:0; z-index:9600; background:rgba(0,0,0,0.4); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; }
+#confirmModal.visible { display:flex; }
+.confirm-card { background:#fff; border-radius:16px; overflow:hidden; width:350px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,0.25); animation:fadeUp 0.2s ease; }
+.confirm-top { padding:16px 20px 13px; display:flex; align-items:center; gap:12px; background:#fafafa; border-bottom:1px solid #eee; }
+.confirm-top img { height:34px; }
+.confirm-top span { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#aaa; }
+.confirm-body { padding:24px 24px 8px; text-align:center; }
+.confirm-icon { font-size:36px; margin-bottom:9px; }
+.confirm-msg { font-size:14px; font-weight:600; color:#1a1a1a; line-height:1.5; }
+.confirm-sub { font-size:12px; color:#999; margin-top:4px; }
+.confirm-foot { padding:14px 20px 20px; display:flex; gap:9px; justify-content:flex-end; }
 
-.dash-topbar{
-  background:#111;border-bottom:3px solid #FFC600;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 28px;height:72px;position:sticky;top:0;z-index:100;
-}
-.dash-topbar-left{display:flex;align-items:center;gap:16px;}
-.dash-topbar-right{display:flex;align-items:center;gap:10px;}
-
-.dash-greeting{font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;}
-.dash-greeting strong{color:#FFC600;font-size:13px;}
-
-.dash-body{
-  max-width:900px;margin:0 auto;padding:40px 24px;
-}
-
-.dash-welcome{
-  text-align:center;margin-bottom:40px;
-}
-.dash-welcome h1{font-size:28px;font-weight:900;color:#fff;margin-bottom:6px;}
-.dash-welcome p{font-size:13px;color:#555;letter-spacing:0.5px;}
-
-.dash-actions{
-  display:flex;gap:16px;justify-content:center;margin-bottom:44px;flex-wrap:wrap;
-}
-
-.dash-card{
-  background:#1a1a1a;border:1.5px solid #2a2a2a;border-radius:14px;
-  padding:28px 32px;width:260px;text-align:center;cursor:pointer;
-  transition:all 0.18s;
-}
-.dash-card:hover{border-color:#FFC600;transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,0.3);}
-.dash-card .dc-icon{font-size:36px;margin-bottom:12px;}
-.dash-card .dc-title{font-size:15px;font-weight:800;color:#fff;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
-.dash-card .dc-sub{font-size:11px;color:#555;}
-.dash-card.primary{border-color:#FFC600;background:#1f1c00;}
-.dash-card.primary .dc-title{color:#FFC600;}
-.dash-card.secondary{border-color:#008C15;background:#001a05;}
-.dash-card.secondary .dc-title{color:#66cc66;}
-
-/* Schedule list */
-.sched-list-title{
-  font-size:10px;text-transform:uppercase;letter-spacing:2px;
-  color:#444;font-weight:700;margin-bottom:14px;padding-left:2px;
-  transition:color 0.3s;
-}
-.sched-list-title.flash{color:#FFC600;animation:titleFlash 1.2s ease;}
-@keyframes titleFlash{
-  0%{color:#444;} 20%{color:#FFC600;} 100%{color:#444;}
-}
-
-.sched-list{display:flex;flex-direction:column;gap:10px;}
-.sched-item{
-  background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
-  cursor:pointer;transition:all 0.15s;
-}
-.sched-item:hover{border-color:#FFC600;background:#1f1c00;}
-.sched-item-left{display:flex;flex-direction:column;gap:3px;}
-.sched-item-title{font-size:14px;font-weight:700;color:#fff;}
-.sched-item-meta{font-size:11px;color:#555;}
-.sched-item-right{display:flex;gap:8px;align-items:center;}
-.sched-item-badge{
-  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
-  padding:3px 9px;border-radius:20px;background:#222;color:#666;border:1px solid #333;
-}
-.sched-del-btn{
-  background:none;border:none;color:#444;font-size:18px;cursor:pointer;
-  padding:0 4px;transition:color 0.1s;line-height:1;
-}
-.sched-del-btn:hover{color:#cc2200;}
-
-.dash-empty{
-  text-align:center;padding:48px 20px;color:#333;
-}
-.dash-empty .de-icon{font-size:40px;margin-bottom:10px;}
-.dash-empty p{font-size:13px;color:#444;}
-
-/* ══════════════════════════════════════
-   MODAL — Create Schedule
-══════════════════════════════════════ */
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,0.6);
-  z-index:5000;display:none;align-items:center;justify-content:center;
-  backdrop-filter:blur(4px);
-}
-.modal-bg.open{display:flex;}
-.modal-box{
-  background:#1a1a1a;border-radius:16px;padding:32px;
-  width:400px;max-width:94vw;border:1px solid #333;
-  box-shadow:0 24px 64px rgba(0,0,0,0.5);
-  animation:swModalIn 0.18s ease;
-}
-.modal-box h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:6px;}
-.modal-box p{font-size:12px;color:#555;margin-bottom:20px;}
-.modal-field{margin-bottom:16px;}
-.modal-field label{display:block;font-size:11px;color:#666;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase;}
-.modal-field input{
-  width:100%;padding:11px 14px;background:#222;border:1.5px solid #333;
-  border-radius:8px;font-size:14px;color:#fff;outline:none;font-family:inherit;transition:border 0.15s;
-}
-.modal-field input:focus{border-color:#FFC600;}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
-
-/* ══════════════════════════════════════
-   SCHEDULE BUILDER SCREEN
-══════════════════════════════════════ */
-#builderScreen{display:none;min-height:100vh;background:#ebebeb;}
-
-/* Top bar */
-.topbar{
-  background:#111;display:flex;align-items:center;justify-content:space-between;
-  padding:0 22px;height:68px;position:sticky;top:0;z-index:100;
-  box-shadow:0 3px 12px rgba(0,0,0,0.4);border-bottom:3px solid #FFC600;
-}
-.topbar-left{display:flex;align-items:center;gap:14px;}
-.topbar-divider{width:1px;height:28px;background:#333;}
-.topbar-subtitle{font-size:10px;color:#666;letter-spacing:2px;text-transform:uppercase;}
-.topbar-schedtitle{font-size:13px;color:#FFC600;font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.topbar-actions{display:flex;gap:8px;align-items:center;}
-
-/* Buttons */
-.btn{
-  padding:8px 16px;border-radius:6px;border:none;font-size:11px;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  transition:all 0.15s;letter-spacing:0.5px;text-transform:uppercase;
-}
-.btn-green{background:#008C15;color:#fff;}
-.btn-green:hover{background:#006b10;}
-.btn-yellow{background:#FFC600;color:#111;}
-.btn-yellow:hover{background:#e6b200;}
-.btn-outline{background:transparent;color:#888;border:1px solid #444;}
-.btn-outline:hover{background:#1a1a1a;color:#ccc;}
-.btn-ghost{background:transparent;color:#555;border:1px solid #2a2a2a;}
-.btn-ghost:hover{border-color:#555;color:#888;}
-
-/* Layout */
-.main-wrap{display:flex;min-height:calc(100vh - 68px);}
-
-/* Sidebar */
-.sidebar{
-  width:256px;min-width:256px;background:#fff;
-  border-right:1px solid #ddd;padding:16px 13px;
-  display:flex;flex-direction:column;gap:14px;overflow-y:auto;
-}
-.sidebar-section-title{
-  font-size:10px;text-transform:uppercase;letter-spacing:1.5px;
-  color:#bbb;font-weight:700;margin-bottom:7px;
-  display:flex;align-items:center;gap:6px;
-}
-.sidebar-section-title::after{content:'';flex:1;height:1px;background:#eee;}
-.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;}
-.form-group label{font-size:11px;color:#999;font-weight:600;letter-spacing:0.3px;}
-.form-group input,.form-group select{
-  padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:6px;
-  font-size:13px;outline:none;transition:border 0.15s;background:#fafafa;font-family:inherit;
-}
-.form-group input:focus,.form-group select:focus{border-color:#008C15;background:#fff;}
-
-.employee-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
-.employee-chip{
-  display:flex;align-items:center;justify-content:space-between;
-  background:#f5f5f5;border-radius:7px;padding:6px 10px;
-  font-size:13px;font-weight:600;border:1px solid #eee;
-}
-.role-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
-.role-manager{background:#FFF8DC;color:#b38600;border:1px solid #FFC600;}
-.role-full{background:#e0f5e0;color:#2a8a2a;border:1px solid #66bb66;}
-.role-part{background:#ddeeff;color:#3366bb;border:1px solid #88aaee;}
-.role-training{background:#ffeedd;color:#cc6622;border:1px solid #ffaa77;}
-.chip-right{display:flex;align-items:center;gap:6px;}
-.chip-del{background:none;border:none;color:#cc0000;font-size:16px;cursor:pointer;opacity:0.4;transition:opacity 0.1s;}
-.chip-del:hover{opacity:1;}
-
-.add-emp-form{
-  display:flex;flex-direction:column;gap:6px;padding:11px;
-  background:#f8f8f8;border-radius:8px;border:1.5px dashed #ddd;margin-top:5px;
-}
-.add-emp-form input,.add-emp-form select{
-  padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:6px;
-  font-size:13px;background:#fff;font-family:inherit;outline:none;
-}
-.add-emp-form input:focus,.add-emp-form select:focus{border-color:#008C15;}
-
-hr.divider{border:none;border-top:1px solid #eee;}
-
-.notes-textarea{
-  width:100%;height:80px;padding:9px 11px;border:1.5px solid #e0e0e0;
-  border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;
-  outline:none;background:#fafafa;line-height:1.5;
-}
-.notes-textarea:focus{border-color:#008C15;background:#fff;}
-
-/* Save indicator */
-.save-indicator{
-  display:flex;align-items:center;gap:6px;font-size:11px;
-  color:#555;padding:0 4px;
-}
-.save-dot{width:7px;height:7px;border-radius:50%;background:#666;transition:background 0.3s;}
-.save-dot.saving{background:#FFC600;animation:savePulse 0.6s ease infinite;}
-.save-dot.saved{background:#008C15;}
-.save-dot.error{background:#cc2200;}
-@keyframes savePulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
-
-/* Content */
-.content{flex:1;padding:20px;overflow-x:auto;}
-.empty-state{text-align:center;padding:60px 20px;color:#bbb;}
-.empty-state .es-icon{font-size:44px;margin-bottom:12px;}
-.empty-state h3{font-size:15px;color:#999;margin-bottom:6px;}
-.empty-state p{font-size:12px;}
-
-/* Schedule wrap */
-.schedule-wrap{
-  background:#fff;border-radius:10px;
-  box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;min-width:860px;
-}
-
-/* Schedule header */
-.sched-head{background:#111;padding:0;display:flex;align-items:stretch;}
-.sched-head-yellow{background:#FFC600;width:7px;flex-shrink:0;}
-.sched-head-green{background:#008C15;width:7px;flex-shrink:0;}
-.sched-head-inner{flex:1;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
-.sched-head-title h2{font-size:17px;font-weight:900;color:#FFC600;letter-spacing:1px;text-transform:uppercase;}
-.sched-head-title .week-line{font-size:11px;color:#aaa;letter-spacing:0.8px;margin-top:2px;}
-.sched-head-right{text-align:right;}
-.sched-head-right .mgr-label{font-size:10px;color:#aaa;letter-spacing:1px;text-transform:uppercase;}
-.sched-head-right .mgr-name{font-size:14px;font-weight:700;color:#fff;margin-top:2px;}
-.sched-head-right .store-name{font-size:11px;color:#aaa;margin-top:1px;}
-
-/* Table */
-table.sched-table{width:100%;border-collapse:collapse;font-size:14px;}
-table.sched-table thead tr{background:#008C15;}
-table.sched-table thead th{
-  color:#fff;font-weight:700;padding:11px 7px;text-align:center;
-  font-size:11px;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.12);text-transform:uppercase;
-}
-table.sched-table thead th:first-child{text-align:left;padding-left:14px;width:145px;background:#006b10;font-size:10px;letter-spacing:1px;}
-table.sched-table thead th .th-day{display:block;font-size:12px;font-weight:800;}
-table.sched-table thead th .th-date{display:block;font-size:10px;font-weight:400;opacity:0.85;margin-top:2px;}
-table.sched-table tbody tr{border-bottom:1px solid #e8e8e8;transition:background 0.1s;}
-table.sched-table tbody tr:nth-child(even){background:#fafffe;}
-table.sched-table tbody tr:hover{background:#f0fff4;}
-table.sched-table tbody td{padding:9px 6px;text-align:center;border-right:1px solid #eee;vertical-align:middle;min-width:106px;}
-table.sched-table tbody td:first-child{text-align:left;padding-left:12px;background:#f8fdf8 !important;border-right:2px solid #d4ead4;font-weight:700;font-size:13px;}
-.emp-name-wrap{display:flex;flex-direction:column;gap:1px;}
-.emp-role-label{font-size:9px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;opacity:0.5;}
-
-/* Shift inputs */
-.shift-input{
-  width:100%;min-width:88px;padding:7px 5px;border:1.5px solid transparent;
-  border-radius:5px;font-size:13px;text-align:center;background:transparent;
-  outline:none;font-family:inherit;cursor:text;transition:all 0.12s;font-weight:600;
-}
-.shift-input::placeholder{color:#ccc;font-weight:400;}
-.shift-input:hover{background:#f0fff4;border-color:#008C15;}
-.shift-input:focus{background:#fff;border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,0.1);}
-.sh-open{background:#e6f7e6;color:#2a882a;border-color:#a3d9a3 !important;}
-.sh-off{background:#f4f4f4;color:#aaa;border-color:#e0e0e0 !important;}
-.sh-training{background:#fff8e1;color:#cc9900;border-color:#FFE082 !important;}
-.sh-close{background:#fff0e6;color:#cc5522;border-color:#ffbb99 !important;}
-.sh-mid{background:#e6f0ff;color:#3366cc;border-color:#99bbff !important;}
-.sh-x{background:#f5f5f5;color:#ccc;border-color:#e5e5e5 !important;font-weight:700;}
-
-/* Print notes */
-.print-notes{display:none;padding:12px 18px;border-top:2px solid #eee;background:#fffdf0;}
-.print-notes-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:4px;}
-.print-notes-text{font-size:12px;color:#333;line-height:1.6;white-space:pre-wrap;}
-
-/* Totals bar */
-.totals-bar{
-  display:flex;align-items:center;justify-content:space-around;
-  background:#111;padding:11px 20px;border-top:3px solid #FFC600;
-}
-.total-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
-.total-stat .t-val{font-size:20px;font-weight:900;color:#FFC600;line-height:1;}
-.total-stat .t-lbl{font-size:9px;color:#999;letter-spacing:1px;text-transform:uppercase;}
-
-/* Legend */
-.legend{
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
-  padding:9px 18px;background:#f8f8f8;border-top:1px solid #eee;
-  font-size:11px;color:#777;
-}
-.leg-item{display:flex;align-items:center;gap:5px;}
-.leg-dot{width:10px;height:10px;border-radius:3px;}
-.leg-hint{margin-left:auto;font-size:10px;color:#ccc;font-style:italic;}
-
-/* Context menu */
-.ctx-menu{
-  position:fixed;background:#fff;border:1px solid #ddd;border-radius:9px;
-  box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:192px;
-  z-index:9999;display:none;overflow:hidden;
-}
-.ctx-menu.visible{display:block;}
-.ctx-menu-head{
-  padding:7px 13px 6px;font-size:9px;text-transform:uppercase;
-  letter-spacing:1.5px;color:#999;border-bottom:1px solid #f0f0f0;font-weight:700;background:#fafafa;
-}
-.ctx-item{
-  padding:9px 13px;font-size:13px;cursor:pointer;
-  display:flex;align-items:center;gap:9px;color:#333;transition:background 0.08s;font-weight:500;
-}
-.ctx-item:hover{background:#f0fff4;}
-.ctx-item.ctx-danger{color:#cc2200;}
-.ctx-item.ctx-danger:hover{background:#fff5f5;}
-
-/* Toast */
-.toast{
-  position:fixed;bottom:24px;right:24px;background:#111;color:#fff;
-  padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  border-left:4px solid #008C15;opacity:0;transform:translateY(10px);
-  transition:all 0.25s;z-index:9999;pointer-events:none;
-}
-.toast.show{opacity:1;transform:translateY(0);}
-
-/* Subway modal (confirmations) */
-.sw-modal-bg{
-  position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;
-  background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);
-}
-.sw-modal-bg.open{display:flex;}
-.sw-modal-box{
-  background:#fff;border-radius:16px;overflow:hidden;width:360px;max-width:94vw;
-  box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:swModalIn 0.18s ease;
-}
-@keyframes swModalIn{from{transform:scale(0.92) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
-.sw-modal-top-bar{height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);}
-.sw-modal-head{background:#f9f9f9;padding:16px 20px 13px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #eee;}
-.sw-modal-body{padding:24px 24px 8px;text-align:center;}
-.sw-modal-icon{font-size:36px;margin-bottom:8px;}
-.sw-modal-msg{font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:3px;}
-.sw-modal-sub{font-size:12px;color:#999;}
-.sw-modal-btns{padding:14px 20px 20px;display:flex;gap:10px;justify-content:flex-end;}
-.sw-modal-bot-bar{height:4px;background:linear-gradient(90deg,#008C15 50%,#FFC600 50%);}
-
-/* GitHub config panel */
-.gh-config{
-  background:#fff3cd;border:1px solid #FFC600;border-radius:8px;
-  padding:12px 14px;font-size:12px;color:#7a5c00;margin-bottom:14px;
-  line-height:1.6;
-}
-.gh-status{
-  display:flex;align-items:center;gap:7px;font-size:11px;
-  padding:6px 10px;border-radius:6px;background:#f0f0f0;color:#666;
-}
-.gh-status.ok{background:#e6f7e6;color:#2a882a;}
-.gh-status.err{background:#fff0e6;color:#cc5522;}
-
-/* ══════════════════════════════════════
-   PRINT STYLES
-══════════════════════════════════════ */
-@media print{
-  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  body{background:#fff !important;}
-  #splash,#loginScreen,#dashScreen{display:none !important;}
-  #builderScreen{display:block !important;}
-  .topbar,.sidebar,.totals-bar,.legend,.toast,.ctx-menu,
-  .sw-modal-bg,.empty-state{display:none !important;}
-  .main-wrap{display:block !important;}
-  .content{padding:0 !important;}
-  .schedule-wrap{box-shadow:none !important;border-radius:0 !important;min-width:0 !important;width:100% !important;}
-  .sched-head{background:#000 !important;-webkit-print-color-adjust:exact;}
-  .sched-head-yellow,.sched-head-green{background:#000 !important;width:4px !important;}
-  .sched-head-title h2{font-size:15px !important;color:#fff !important;}
-  .sched-head-title .week-line{color:#ccc !important;font-size:10px !important;}
-  .sched-head-right .mgr-name{color:#fff !important;font-size:13px !important;}
-  .sched-head-right .mgr-label,.sched-head-right .store-name{color:#aaa !important;}
-  table.sched-table{font-size:11.5px !important;border-collapse:collapse !important;}
-  table.sched-table thead th{padding:8px 5px !important;font-size:10px !important;background:#222 !important;color:#fff !important;border-right:1px solid #555 !important;-webkit-print-color-adjust:exact;}
-  table.sched-table thead th:first-child{background:#000 !important;-webkit-print-color-adjust:exact;}
-  table.sched-table thead th .th-day{font-size:11px !important;}
-  table.sched-table thead th .th-date{font-size:9px !important;}
-  table.sched-table tbody td{padding:7px 4px !important;min-width:0 !important;border-right:1px solid #ccc !important;border-bottom:1px solid #ddd !important;}
-  table.sched-table tbody td:first-child{background:#f0f0f0 !important;border-right:2px solid #888 !important;font-size:11px !important;-webkit-print-color-adjust:exact;}
-  table.sched-table tbody tr:nth-child(even) td{background:#f7f7f7 !important;-webkit-print-color-adjust:exact;}
-  .emp-role-label{font-size:7px !important;}
-  .shift-input{border:1px solid #bbb !important;box-shadow:none !important;font-size:11px !important;padding:5px 3px !important;min-width:0 !important;font-weight:700 !important;background:#fff !important;color:#000 !important;border-radius:3px !important;-webkit-print-color-adjust:exact;}
-  .sh-open{background:#eee !important;color:#000 !important;border-color:#999 !important;}
-  .sh-off{background:#f8f8f8 !important;color:#888 !important;border-color:#ccc !important;}
-  .sh-training{background:#f0f0f0 !important;color:#000 !important;border-color:#999 !important;font-style:italic !important;}
-  .sh-close{background:#e8e8e8 !important;color:#000 !important;border-color:#888 !important;}
-  .sh-mid{background:#efefef !important;color:#000 !important;border-color:#aaa !important;}
-  .sh-x{background:#f9f9f9 !important;color:#bbb !important;border-color:#ddd !important;}
-  .print-notes{display:block !important;}
-  @page{size:landscape;margin:0.6cm 1cm;}
+/* ── PRINT ── */
+@media print {
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  body { background:#fff !important; }
+  #langToggle, #splashScreen, #loginScreen, #dashboardScreen, #adminScreen,
+  .overlay, #confirmModal, .topbar, .sidebar, .totals-bar, .legend, .toast, .ctx-menu, .empty-state { display:none !important; }
+  #editorScreen { display:flex !important; position:static !important; }
+  .main-wrap { display:block !important; }
+  .content { padding:0 !important; }
+  .schedule-wrap { box-shadow:none !important; border-radius:0 !important; min-width:0 !important; width:100% !important; }
+  .sched-head { background:#000 !important; }
+  .sched-head-y, .sched-head-g { background:#000 !important; width:5px !important; }
+  .sched-head-title h2 { font-size:15px !important; color:#fff !important; }
+  .sched-head-title .week-line { color:#ccc !important; font-size:10px !important; }
+  .sched-head-right .mgr-name { color:#fff !important; } .sched-head-right .mgr-lbl,.sched-head-right .store-name { color:#aaa !important; }
+  table.st { font-size:12px !important; }
+  table.st thead th { padding:8px 5px !important; font-size:11px !important; background:#222 !important; color:#fff !important; }
+  table.st thead th:first-child { background:#000 !important; }
+  table.st tbody td { padding:7px 4px !important; min-width:0 !important; border-right:1px solid #ccc !important; border-bottom:1px solid #ddd !important; }
+  table.st tbody td:first-child { background:#f2f2f2 !important; border-right:2px solid #888 !important; }
+  .shift-input { border:1px solid #bbb !important; font-size:11px !important; padding:5px 3px !important; min-width:0 !important; font-weight:700 !important; background:#fff !important; color:#000 !important; }
+  .sh-open { background:#eee !important; color:#000 !important; border-color:#999 !important; }
+  .sh-off { background:#f8f8f8 !important; color:#888 !important; }
+  .sh-close { background:#e8e8e8 !important; color:#000 !important; }
+  .sh-mid { background:#efefef !important; color:#000 !important; }
+  .sh-training { background:#f0f0f0 !important; color:#000 !important; font-style:italic !important; }
+  .print-notes { display:block !important; }
+  @page { size:landscape; margin:0.5cm 1cm; }
+  html, body { margin:0 !important; }
 }
 </style>
 </head>
 <body>
 
-<!-- ══ SPLASH ══ -->
-<div id="splash">
-  <div class="splash-flash"></div>
-  <div class="splash-pulse-ring"></div>
-  <div class="splash-pulse-ring"></div>
-  <div class="splash-pulse-ring"></div>
-  <div class="splash-particle" style="width:6px;height:6px;background:#FFC600;left:38%;top:55%;animation-delay:0.9s"></div>
-  <div class="splash-particle" style="width:4px;height:4px;background:#008C15;left:60%;top:58%;animation-delay:1.2s"></div>
-  <div class="splash-particle" style="width:5px;height:5px;background:#FFC600;left:46%;top:62%;animation-delay:1.5s"></div>
-  <div class="splash-particle" style="width:4px;height:4px;background:#008C15;left:55%;top:50%;animation-delay:1.8s"></div>
-  <div class="splash-particle" style="width:6px;height:6px;background:#FFC600;left:50%;top:60%;animation-delay:2.1s"></div>
+<!-- LANGUAGE TOGGLE -->
+<button id="langToggle" onclick="toggleLang()">🌐 ES</button>
+
+<!-- SPLASH -->
+<div id="splashScreen">
+  <div class="splash-bar"></div>
+  <div class="splash-bar bot"></div>
   <div class="splash-logo-wrap">
     <div class="splash-ring"></div>
-    <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="splash-img">
+    <div class="splash-ring r2"></div>
+    <img class="splash-logo" src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
   </div>
-  <div class="splash-tagline-wrap"><div class="splash-tagline">Schedule Maker</div></div>
-  <div class="splash-bar-track"><div class="splash-bar"></div></div>
-  <div class="splash-dots"><span></span><span></span><span></span></div>
+  <div class="splash-tag">Schedule Maker</div>
 </div>
 
-<!-- ══ APP ══ -->
-<div id="app">
-
-<!-- ── LOGIN ── -->
-<div id="loginScreen">
-  <button id="langBtnLogin" onclick="toggleLang()" style="position:absolute;top:20px;right:24px;background:#1a1a1a;border:1px solid #333;color:#888;padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px">🌐 <span id="langBtnLoginText">Español</span></button>
+<!-- LOGIN -->
+<div id="loginScreen" class="screen">
   <div class="login-card">
-    <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="login-logo">
-    <div class="login-title" data-i18n="staffAccess">Staff Access</div>
-    <div class="login-field">
-      <label data-i18n="username">Username</label>
-      <input type="text" id="loginUser" placeholder="Username" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="card-topbar"></div>
+    <div class="login-head">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+      <h2 data-i18n="login_title">System Access</h2>
+      <p data-i18n="login_sub">Authorized personnel only</p>
     </div>
-    <div class="login-field">
-      <label data-i18n="password">Password</label>
-      <input type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-body">
+      <div class="field-group">
+        <label data-i18n="lbl_email">Email</label>
+        <input type="email" id="loginEmail" placeholder="email@example.com" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="field-group">
+        <label data-i18n="lbl_pass">Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="field-error" id="loginError"></div>
+      <button class="login-btn" onclick="doLogin()" data-i18n="btn_login">Log In</button>
     </div>
-    <button class="login-btn" onclick="doLogin()"><span data-i18n="signIn">Sign In</span> →</button>
-    <div class="login-error" id="loginError" data-i18n="loginErrorMsg">Incorrect username or password.</div>
-    <div class="login-footer" data-i18n="loginFooter">SUBWAY® Internal Tool · Authorized Use Only</div>
+    <div class="card-botbar"></div>
   </div>
 </div>
 
-<!-- ── DASHBOARD ── -->
-<div id="dashScreen">
+<!-- DASHBOARD -->
+<div id="dashboardScreen" class="screen">
   <div class="dash-topbar">
     <div class="dash-topbar-left">
-      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:42px;width:auto">
-      <div style="width:1px;height:24px;background:#222;"></div>
-      <span style="font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase;" data-i18n="scheduleMaker">Schedule Maker</span>
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+      <span data-i18n="dash_topbar">Main Panel</span>
     </div>
-    <div class="dash-topbar-right">
-      <button id="langBtnDash" onclick="toggleLang()" style="background:#1a1a1a;border:1px solid #333;color:#888;padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px">🌐 <span id="langBtnDashText">Español</span></button>
-      <div class="dash-greeting"><span data-i18n="welcomeBack">Welcome back,</span> <strong id="dashName">Devon</strong></div>
-      <button class="btn btn-ghost" onclick="doLogout()" data-i18n="signOut">Sign Out</button>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="dashUserBadge" style="font-size:11px;color:#aaa;letter-spacing:0.5px"></span>
+      <button class="btn btn-outline" onclick="doLogout()" data-i18n="btn_logout">🔒 Log Out</button>
     </div>
   </div>
-
   <div class="dash-body">
     <div class="dash-welcome">
-      <h1 data-i18n="yourSchedules">Your Schedules</h1>
-      <p data-i18n="yourSchedulesSub">Create a new weekly schedule or open an existing one.</p>
+      <h1 id="dashHello">Hello 👋</h1>
+      <p data-i18n="dash_question">What would you like to do today?</p>
     </div>
-
-    <!-- GitHub setup -->
-    <div id="ghSetupBanner" class="gh-config" style="display:none">
-      ⚙️ <strong data-i18n="ghNotConfigured">GitHub not configured.</strong> <span data-i18n="ghNotConfiguredSub">Enter your repository details below to enable cloud saving.</span>
-      <div style="display:flex;flex-direction:column;gap:7px;margin-top:9px">
-        <div style="display:flex;gap:8px">
-          <input type="text" id="ghOwnerInput" placeholder="GitHub username (e.g. devon123)"
-            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
-          <input type="text" id="ghRepoInput" placeholder="Repository name (e.g. subway-schedules)"
-            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
-        </div>
-        <div style="display:flex;gap:8px">
-          <input type="password" id="ghTokenInput" placeholder="Personal Access Token (ghp_...)"
-            style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;outline:none">
-          <button onclick="saveGhToken()" style="padding:7px 16px;background:#008C15;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap" data-i18n="save">Save</button>
-        </div>
+    <div class="dash-cards">
+      <div class="dash-card" onclick="openTitlePrompt()">
+        <div class="dc-icon">➕</div>
+        <h3 data-i18n="card_create">Create Schedule</h3>
+        <p data-i18n="card_create_desc">Start a new weekly schedule, saved automatically to the cloud.</p>
       </div>
-    </div>
-
-    <div class="dash-actions">
-      <div class="dash-card primary" onclick="openCreateModal()">
-        <div class="dc-icon">📋</div>
-        <div class="dc-title" data-i18n="createSchedule">Create Schedule</div>
-        <div class="dc-sub" data-i18n="createScheduleSub">Start a new weekly schedule</div>
-      </div>
-      <div class="dash-card secondary" onclick="goToSchedulesList()">
+      <div class="dash-card" onclick="openMySchedules()">
         <div class="dc-icon">📂</div>
-        <div class="dc-title" data-i18n="mySchedules">My Schedules</div>
-        <div class="dc-sub" data-i18n="mySchedulesSub">View and open saved schedules</div>
+        <h3 data-i18n="card_my">My Schedules</h3>
+        <p data-i18n="card_my_desc">View, continue, or review all your schedules.</p>
+      </div>
+      <div class="dash-card" id="adminCard" style="display:none" onclick="openAdminPanel()">
+        <div class="dc-icon">🛡️</div>
+        <h3 data-i18n="card_admin">Admin Panel</h3>
+        <p data-i18n="card_admin_desc">See all users and all schedules created. Recover any lost schedule.</p>
       </div>
     </div>
-
-    <!-- Schedule list -->
-    <div class="sched-list-title" id="savedSchedulesTitle" data-i18n="savedSchedules">Saved Schedules</div>
-    <div id="ghStatus" class="gh-status" style="margin-bottom:12px;display:none"></div>
-    <div class="sched-list" id="schedList">
-      <div class="dash-empty"><div class="de-icon">📭</div><p data-i18n="noSchedules">No schedules yet. Create your first one!</p></div>
-    </div>
+    <div class="dash-status" id="dashStatus"></div>
   </div>
 </div>
 
-<!-- ── BUILDER ── -->
-<div id="builderScreen">
+<!-- ADMIN SCREEN -->
+<div id="adminScreen" class="screen">
+  <div class="admin-topbar">
+    <div class="admin-topbar-left">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+      <div class="admin-topbar-title">
+        <span data-i18n="admin_title">Admin Panel</span>
+        <span data-i18n="admin_sub">All users & schedules</span>
+      </div>
+    </div>
+    <button class="btn btn-outline" onclick="showDashboard()">← <span data-i18n="btn_back">Back</span></button>
+  </div>
+  <div class="admin-body">
+    <div class="admin-section-title" data-i18n="admin_users_title">All Users</div>
+    <div id="adminUsersList"><div class="sched-empty" data-i18n="loading">Loading...</div></div>
+  </div>
+</div>
+
+<!-- EDITOR SCREEN -->
+<div id="editorScreen" class="screen" style="flex-direction:column">
   <div class="topbar">
     <div class="topbar-left">
-      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:44px;width:auto">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:50px">
       <div class="topbar-divider"></div>
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <span class="topbar-subtitle">Schedule Maker</span>
-        <span class="topbar-schedtitle" id="topSchedTitle">Untitled</span>
-      </div>
+      <span class="topbar-subtitle" data-i18n="topbar_sub">Schedule Maker</span>
+      <div class="save-indicator" id="saveIndicator"><div class="dot"></div><span id="saveText" data-i18n="save_idle">No changes</span></div>
     </div>
-    <div class="topbar-actions">
-      <div class="save-indicator" id="saveIndicator">
-        <div class="save-dot" id="saveDot"></div>
-        <span id="saveLabel">Ready</span>
-      </div>
-      <button class="btn btn-outline" onclick="goToDash()">← Dashboard</button>
-      <button class="btn btn-outline" onclick="clearAll()">🗑 Clear</button>
-      <button class="btn btn-yellow" onclick="window.print()">🖨 Print</button>
+    <div style="display:flex;gap:9px;align-items:center">
+      <button class="btn btn-outline" onclick="goHome()">🏠 <span data-i18n="btn_home">Home</span></button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑 <span data-i18n="btn_clear">Clear All</span></button>
+      <button class="btn btn-yellow" onclick="window.print()">🖨 <span data-i18n="btn_print">Print</span></button>
     </div>
   </div>
-
-  <div class="main-wrap">
-    <!-- SIDEBAR -->
+  <div class="main-wrap" style="flex:1;overflow:hidden">
     <div class="sidebar">
-      <!-- Week Settings -->
       <div>
-        <div class="sidebar-section-title">📅 Week Settings</div>
-        <div class="form-group">
-          <label>Store / Location</label>
-          <input type="text" id="storeName" placeholder="Subway - Store #" oninput="updateHeader();triggerSave()">
-        </div>
-        <div class="form-group">
-          <label>Manager Name</label>
-          <input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader();triggerSave()">
-        </div>
-        <div class="form-group">
-          <label>Week Start (Wednesday)</label>
-          <input type="date" id="weekStart" oninput="updateDates();triggerSave()">
-        </div>
+        <div class="sec-title" data-i18n="sb_week">📅 Week Settings</div>
+        <div class="fg"><label data-i18n="lbl_store">Store / Location</label><input type="text" id="storeName" placeholder="Subway - Store #" oninput="updateHeader()"></div>
+        <div class="fg"><label data-i18n="lbl_mgr">Manager Name</label><input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader()"></div>
+        <div class="fg"><label data-i18n="lbl_weekstart">Week Start (Wed)</label><input type="date" id="weekStart" oninput="updateDates()"></div>
       </div>
-
-      <hr class="divider">
-
-      <!-- Employees -->
+      <hr class="div">
       <div>
-        <div class="sidebar-section-title">👥 Employees</div>
-        <div class="employee-list" id="empList">
-          <div style="text-align:center;padding:16px 0;color:#ccc;font-size:12px">No employees yet.<br>Add one below ↓</div>
-        </div>
+        <div class="sec-title" data-i18n="sb_emps">👥 Employees</div>
+        <div class="emp-list" id="empList"><div style="text-align:center;padding:18px 0;color:#ccc;font-size:12px" data-i18n-html="no_emps">No employees yet.<br>Add one below ↓</div></div>
         <div class="add-emp-form">
-          <input type="text" id="newEmpName" placeholder="Employee name..." maxlength="30"
-            onkeydown="if(event.key==='Enter')addEmployee()">
+          <input type="text" id="newEmpName" placeholder="Employee name..." maxlength="30" onkeydown="if(event.key==='Enter')addEmployee()">
           <select id="newEmpRole">
-            <option value="full">Full Time</option>
-            <option value="part">Part Time</option>
-            <option value="manager">Shift Manager</option>
-            <option value="training">In Training</option>
+            <option value="full" data-i18n="role_full">Full Time</option>
+            <option value="part" data-i18n="role_part">Part Time</option>
+            <option value="manager" data-i18n="role_mgr">Shift Manager</option>
+            <option value="training" data-i18n="role_train">In Training</option>
           </select>
-          <button class="btn btn-green" style="width:100%;justify-content:center;padding:9px" onclick="addEmployee()">+ Add Employee</button>
+          <button class="btn btn-green" style="width:100%;justify-content:center;padding:9px" onclick="addEmployee()" data-i18n="btn_add_emp">+ Add Employee</button>
         </div>
       </div>
-
-      <hr class="divider">
-
-      <!-- Notes -->
+      <hr class="div">
       <div>
-        <div class="sidebar-section-title">📝 Notes</div>
-        <p style="font-size:11px;color:#aaa;margin-bottom:7px;line-height:1.5">Prints at the bottom of the schedule.</p>
-        <div class="form-group">
-          <label>Notes Title</label>
-          <select id="notesTitle" onchange="syncNotes();triggerSave()">
-            <option value="Notes">Notes</option>
-            <option value="Notice">Notice</option>
-            <option value="Announcement">Announcement</option>
-            <option value="Warning">Warning</option>
-            <option value="Reminder">Reminder</option>
-            <option value="Important">Important</option>
-            <option value="Update">Update</option>
-            <option value="Message">Message</option>
+        <div class="sec-title" data-i18n="sb_notes">📝 Notes</div>
+        <p style="font-size:11px;color:#aaa;margin-bottom:7px;line-height:1.5" data-i18n="notes_desc">These notes appear at the bottom when printed.</p>
+        <div class="fg">
+          <label data-i18n="lbl_notes_title">Notes Title</label>
+          <select id="notesTitle" onchange="syncNotes()">
+            <option value="Notes">Notes</option><option value="Notice">Notice</option><option value="Announcement">Announcement</option>
+            <option value="Warning">Warning</option><option value="Reminder">Reminder</option><option value="Important">Important</option>
           </select>
         </div>
-        <textarea id="schedNotes" class="notes-textarea"
-          placeholder="e.g. Store closed Sunday. Team meeting Thursday 3pm..."
-          oninput="syncNotes();triggerSave()"></textarea>
+        <textarea id="schedNotes" class="notes-ta" placeholder="e.g. Store closed Sunday..." oninput="syncNotes()"></textarea>
       </div>
     </div>
-
-    <!-- CONTENT -->
     <div class="content">
       <div class="empty-state" id="emptyState">
         <div class="es-icon">📋</div>
-        <h3>No employees added yet</h3>
-        <p>Add employees from the left panel.</p>
+        <h3 data-i18n="empty_title">No employees added yet</h3>
+        <p data-i18n="empty_desc">Add employees using the panel on the left and the schedule will appear here.</p>
       </div>
-
       <div class="schedule-wrap" id="schedWrap" style="display:none">
-        <!-- Header -->
         <div class="sched-head">
-          <div class="sched-head-yellow"></div>
-          <div class="sched-head-green"></div>
+          <div class="sched-head-y"></div><div class="sched-head-g"></div>
           <div class="sched-head-inner">
             <div class="sched-head-title">
-              <h2>Weekly Schedule</h2>
+              <h2 id="hdrTitle">Weekly Schedule</h2>
               <div class="week-line" id="hdrWeek">Week of: —</div>
             </div>
-            <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:46px;width:auto">
+            <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:44px">
             <div class="sched-head-right">
-              <div class="mgr-label">Manager</div>
+              <div class="mgr-lbl" data-i18n="lbl_mgr_hdr">Manager</div>
               <div class="mgr-name" id="hdrMgr">—</div>
               <div class="store-name" id="hdrStore"></div>
             </div>
           </div>
         </div>
-
-        <!-- Table -->
         <div style="overflow-x:auto">
-          <table class="sched-table" id="schedTable">
+          <table class="st" id="schedTable">
             <thead><tr id="tHead"><th>Employee</th></tr></thead>
             <tbody id="tBody"></tbody>
           </table>
         </div>
-
-        <!-- Print notes -->
-        <div class="print-notes" id="printNotes" style="display:none">
+        <div class="print-notes" id="printNotes">
           <div class="print-notes-label" id="printNotesLabel">📝 Notes</div>
           <div class="print-notes-text" id="printNotesText"></div>
         </div>
-
-        <!-- Totals -->
         <div class="totals-bar">
-          <div class="total-stat"><span class="t-val" id="totEmp">0</span><span class="t-lbl">Employees</span></div>
-          <div class="total-stat"><span class="t-val" id="totShifts">0</span><span class="t-lbl">Shifts</span></div>
-          <div class="total-stat"><span class="t-val" id="totOff">0</span><span class="t-lbl">Days Off</span></div>
-          <div class="total-stat"><span class="t-val" id="totPct">—</span><span class="t-lbl">Coverage</span></div>
-          <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:38px;width:auto">
+          <div class="total-stat"><span class="t-val" id="totEmp">0</span><span class="t-lbl" data-i18n="stat_emps">Employees</span></div>
+          <div class="total-stat"><span class="t-val" id="totShifts">0</span><span class="t-lbl" data-i18n="stat_shifts">Shifts</span></div>
+          <div class="total-stat"><span class="t-val" id="totOff">0</span><span class="t-lbl" data-i18n="stat_off">Days Off</span></div>
+          <div class="total-stat"><span class="t-val" id="totPct">—</span><span class="t-lbl" data-i18n="stat_cov">Coverage</span></div>
+          <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:40px">
         </div>
-
-        <!-- Legend -->
         <div class="legend">
-          <strong style="font-size:10px;color:#666;margin-right:4px;text-transform:uppercase;letter-spacing:1px">Legend</strong>
-          <div class="leg-item"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>Mid</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div>Close</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div>Training</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div>Off</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:1px solid #e5e5e5"></div>X</div>
-          <div class="leg-hint">Right-click any cell for quick options</div>
+          <strong style="font-size:10px;color:#666;margin-right:4px;text-transform:uppercase;letter-spacing:1px" data-i18n="legend">Legend</strong>
+          <div class="leg-item"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div><span data-i18n="leg_open">Open</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div><span data-i18n="leg_mid">Mid</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fff0e6;border:1px solid #ffbb99"></div><span data-i18n="leg_close">Close</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fff8e1;border:1px solid #FFE082"></div><span data-i18n="leg_train">Training</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f2f2f2;border:1px solid #e0e0e0"></div><span data-i18n="leg_off">Off</span></div>
+          <div class="leg-hint" data-i18n="leg_hint">Right-click any cell for quick options</div>
         </div>
       </div>
     </div>
   </div>
-</div><!-- /builderScreen -->
+</div>
 
-</div><!-- /app -->
-
-<!-- ── CREATE MODAL ── -->
-<div class="modal-bg" id="createModal">
-  <div class="modal-box">
-    <div style="height:5px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);border-radius:4px 4px 0 0;margin:-32px -32px 24px;"></div>
-    <h3 data-i18n="createNewSchedule">Create New Schedule</h3>
-    <p data-i18n="createNewScheduleSub">Give this schedule a name so you can find it later.</p>
-    <div class="modal-field">
-      <label data-i18n="scheduleTitle">Schedule Title</label>
-      <input type="text" id="newSchedTitle" placeholder="e.g. Week of June 30 · Store #1234" maxlength="60"
-        onkeydown="if(event.key==='Enter')createSchedule()">
+<!-- MODAL: NEW SCHEDULE TITLE -->
+<div class="overlay" id="titleOverlay">
+  <div class="panel" style="width:400px">
+    <div class="panel-bar"></div>
+    <div class="panel-head"><img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt=""><h3 data-i18n="modal_new_title">New Schedule</h3></div>
+    <div class="panel-body">
+      <div class="field-group">
+        <label data-i18n="lbl_sched_title">Schedule title (required)</label>
+        <input type="text" id="newScheduleTitle" placeholder="e.g. Week of July 1–7" onkeydown="if(event.key==='Enter')createSchedule()">
+      </div>
+      <div class="field-error" id="titleError"></div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeCreateModal()" style="color:#666" data-i18n="cancel">Cancel</button>
-      <button class="btn btn-yellow" onclick="createSchedule()"><span data-i18n="createScheduleBtn">Create Schedule</span> →</button>
+    <div class="panel-foot">
+      <button class="btn btn-outline" onclick="closeOverlay('titleOverlay')" data-i18n="btn_cancel">Cancel</button>
+      <button class="btn btn-green" onclick="createSchedule()" data-i18n="btn_create">Create</button>
     </div>
   </div>
 </div>
 
-<!-- ── CONFIRMATION MODAL ── -->
-<div class="sw-modal-bg" id="swModal">
-  <div class="sw-modal-box">
-    <div class="sw-modal-top-bar"></div>
-    <div class="sw-modal-head">
-      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:36px;width:auto">
-      <div style="width:1px;height:20px;background:#e0e0e0"></div>
-      <span id="swModalBadge" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aaa">Confirmation</span>
-    </div>
-    <div class="sw-modal-body">
-      <div class="sw-modal-icon" id="swModalIcon">⚠️</div>
-      <div class="sw-modal-msg" id="swModalMsg"></div>
-      <div class="sw-modal-sub" id="swModalSub"></div>
-    </div>
-    <div class="sw-modal-btns">
-      <button id="swModalCancel" style="padding:10px 20px;border-radius:8px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#555">Cancel</button>
-      <button id="swModalOk" style="padding:10px 24px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;color:#fff;background:#cc2200">Confirm</button>
-    </div>
-    <div class="sw-modal-bot-bar"></div>
+<!-- MODAL: MY SCHEDULES -->
+<div class="overlay" id="mySchedsOverlay">
+  <div class="panel" style="width:460px">
+    <div class="panel-bar"></div>
+    <div class="panel-head"><img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt=""><h3 data-i18n="modal_my_scheds">My Schedules</h3></div>
+    <div class="panel-body" id="mySchedsBody"><div class="sched-empty" data-i18n="loading">Loading...</div></div>
+    <div class="panel-foot"><button class="btn btn-outline" onclick="closeOverlay('mySchedsOverlay')" data-i18n="btn_close">Close</button></div>
   </div>
 </div>
 
-<!-- ── CONTEXT MENU ── -->
+<!-- MODAL: ADMIN VIEW USER SCHEDULES -->
+<div class="overlay" id="adminUserSchedsOverlay">
+  <div class="panel" style="width:480px">
+    <div class="panel-bar"></div>
+    <div class="panel-head"><img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt=""><h3 id="adminUserSchedsTitle">User Schedules</h3></div>
+    <div class="panel-body" id="adminUserSchedsBody"><div class="sched-empty" data-i18n="loading">Loading...</div></div>
+    <div class="panel-foot"><button class="btn btn-outline" onclick="closeOverlay('adminUserSchedsOverlay')" data-i18n="btn_close">Close</button></div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctxMenu">
-  <div class="ctx-menu-head">Set Shift</div>
+  <div class="ctx-head" data-i18n="ctx_head">Set Shift</div>
   <div class="ctx-item" onclick="ctxApply('Open')"><div class="leg-dot" style="background:#e6f7e6;border:1px solid #a3d9a3"></div>Open</div>
   <div class="ctx-item" onclick="ctxApply('9 to 5')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>9 to 5</div>
   <div class="ctx-item" onclick="ctxApply('8 to 4')"><div class="leg-dot" style="background:#e6f0ff;border:1px solid #99bbff"></div>8 to 4</div>
@@ -909,830 +544,706 @@ table.sched-table tbody td:first-child{text-align:left;padding-left:12px;backgro
   <div class="ctx-item ctx-danger" onclick="ctxApply('')">✕ Clear cell</div>
 </div>
 
+<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════════════════════════════
-     JAVASCRIPT
-══════════════════════════════════════ -->
+<!-- CONFIRM MODAL -->
+<div id="confirmModal">
+  <div class="confirm-card">
+    <div class="card-topbar"></div>
+    <div class="confirm-top">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="">
+      <span id="confirmBadge">Confirmation</span>
+    </div>
+    <div class="confirm-body">
+      <div class="confirm-icon" id="confirmIcon">⚠️</div>
+      <div class="confirm-msg" id="confirmMsg"></div>
+      <div class="confirm-sub" id="confirmSub"></div>
+    </div>
+    <div class="confirm-foot">
+      <button class="btn btn-outline" id="confirmCancel">Cancel</button>
+      <button class="btn btn-red" id="confirmOk">Confirm</button>
+    </div>
+    <div class="card-botbar"></div>
+  </div>
+</div>
+
+<style>
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+</style>
+
 <script>
-/* ── CREDENTIALS ──
-   Username: devon
-   Password: Subway@2025! (change below if you want a different one) */
-const CREDS = { username: 'devon', password: 'Subway@2025!' };
+/* ═══════════════════════════════════════
+   ⚠️  FILL IN YOUR SUPABASE KEYS BELOW
+   ═══════════════════════════════════════ */
+const SUPABASE_URL = 'https://xcnrwvlqxhhwqgnhkrgl.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbnJ3dmxxeGhod3FnbmhrcmdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMjM0ODksImV4cCI6MjEwMDY5OTQ4OX0.RrOQ9g3ssjcZbBz9xotC6krPEqyIc0xK-br5iF5pYTs';
+/* ═══════════════════════════════════════ */
 
-/* ── GITHUB CONFIG ──
-   Devon enters her own GitHub username, repo name, and token
-   from the dashboard banner. Nothing is hardcoded here for security —
-   the values live only in her browser's localStorage. */
-let GH_OWNER  = '';
-let GH_REPO   = '';
-let GH_TOKEN  = '';
-const GH_BRANCH = 'main';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ── LANGUAGE ── */
-let currentLang = 'en';
-const I18N = {
+/* ─── LANGUAGE ─── */
+let lang = localStorage.getItem('sw_lang') || 'en';
+const TXT = {
   en: {
-    staffAccess:'Staff Access', username:'Username', password:'Password', signIn:'Sign In',
-    loginErrorMsg:'Incorrect username or password.', loginFooter:'SUBWAY® Internal Tool · Authorized Use Only',
-    scheduleMaker:'Schedule Maker', welcomeBack:'Welcome back,', signOut:'Sign Out',
-    yourSchedules:'Your Schedules', yourSchedulesSub:'Create a new weekly schedule or open an existing one.',
-    ghNotConfigured:'GitHub not configured.', ghNotConfiguredSub:'Enter your repository details below to enable cloud saving.',
-    save:'Save', createSchedule:'Create Schedule', createScheduleSub:'Start a new weekly schedule',
-    mySchedules:'My Schedules', mySchedulesSub:'View and open saved schedules',
-    savedSchedules:'Saved Schedules', noSchedules:'No schedules yet. Create your first one!',
-    createNewSchedule:'Create New Schedule', createNewScheduleSub:'Give this schedule a name so you can find it later.',
-    scheduleTitle:'Schedule Title', cancel:'Cancel', createScheduleBtn:'Create Schedule'
+    login_title:'System Access', login_sub:'Authorized personnel only', lbl_email:'Email', lbl_pass:'Password', btn_login:'Log In',
+    dash_topbar:'Main Panel', dash_question:'What would you like to do today?',
+    card_create:'Create Schedule', card_create_desc:'Start a new weekly schedule, saved automatically to the cloud.',
+    card_my:'My Schedules', card_my_desc:'View, continue, or review all your schedules.',
+    card_admin:'Admin Panel', card_admin_desc:'See all users and all schedules created. Recover any lost schedule.',
+    admin_title:'Admin Panel', admin_sub:'All users & schedules', admin_users_title:'All Users',
+    btn_back:'Back', btn_logout:'🔒 Log Out', btn_cancel:'Cancel', btn_create:'Create', btn_close:'Close',
+    btn_home:'Home', btn_clear:'Clear All', btn_print:'Print', btn_add_emp:'+ Add Employee',
+    topbar_sub:'Schedule Maker', save_idle:'No changes', save_saving:'Saving...', save_saved:'Saved', save_err:'Save error',
+    sb_week:'📅 Week Settings', sb_emps:'👥 Employees', sb_notes:'📝 Notes',
+    lbl_store:'Store / Location', lbl_mgr:'Manager Name', lbl_weekstart:'Week Start (Wed)',
+    lbl_notes_title:'Notes Title', notes_desc:'These notes appear at the bottom when printed.',
+    empty_title:'No employees added yet', empty_desc:'Add employees using the panel on the left.',
+    lbl_mgr_hdr:'Manager', modal_new_title:'New Schedule', lbl_sched_title:'Schedule title (required)',
+    modal_my_scheds:'My Schedules', loading:'Loading...',
+    no_emps:'No employees yet.<br>Add one below ↓',
+    role_full:'Full Time', role_part:'Part Time', role_mgr:'Shift Manager', role_train:'In Training',
+    stat_emps:'Employees', stat_shifts:'Shifts This Week', stat_off:'Days Off', stat_cov:'Coverage',
+    legend:'Legend', leg_open:'Open', leg_mid:'Mid Shift', leg_close:'Close', leg_train:'Training', leg_off:'Off', leg_hint:'Right-click any cell for quick options',
+    ctx_head:'Set Shift',
+    hdr_week:'Week of: —', week_of:'Week of: '
   },
   es: {
-    staffAccess:'Acceso del Personal', username:'Usuario', password:'Contraseña', signIn:'Entrar',
-    loginErrorMsg:'Usuario o contraseña incorrectos.', loginFooter:'Herramienta Interna SUBWAY® · Solo Uso Autorizado',
-    scheduleMaker:'Creador de Horarios', welcomeBack:'Bienvenida de nuevo,', signOut:'Cerrar Sesión',
-    yourSchedules:'Tus Horarios', yourSchedulesSub:'Crea un nuevo horario semanal o abre uno existente.',
-    ghNotConfigured:'GitHub no configurado.', ghNotConfiguredSub:'Ingresa los datos de tu repositorio abajo para activar el guardado en la nube.',
-    save:'Guardar', createSchedule:'Crear Horario', createScheduleSub:'Comienza un nuevo horario semanal',
-    mySchedules:'Mis Horarios', mySchedulesSub:'Ver y abrir horarios guardados',
-    savedSchedules:'Horarios Guardados', noSchedules:'Aún no hay horarios. ¡Crea el primero!',
-    createNewSchedule:'Crear Nuevo Horario', createNewScheduleSub:'Ponle un nombre a este horario para encontrarlo después.',
-    scheduleTitle:'Título del Horario', cancel:'Cancelar', createScheduleBtn:'Crear Horario'
+    login_title:'Acceso al Sistema', login_sub:'Solo personal autorizado', lbl_email:'Correo electrónico', lbl_pass:'Contraseña', btn_login:'Ingresar',
+    dash_topbar:'Panel Principal', dash_question:'¿Qué deseas hacer hoy?',
+    card_create:'Crear Horario', card_create_desc:'Inicia un nuevo horario semanal, guardado automáticamente en la nube.',
+    card_my:'Mis Horarios', card_my_desc:'Consulta, continúa o revisa todos tus horarios.',
+    card_admin:'Panel Admin', card_admin_desc:'Ve todos los usuarios y todos los horarios creados. Recupera cualquier horario perdido.',
+    admin_title:'Panel Admin', admin_sub:'Todos los usuarios y horarios', admin_users_title:'Todos los Usuarios',
+    btn_back:'Volver', btn_logout:'🔒 Cerrar Sesión', btn_cancel:'Cancelar', btn_create:'Crear', btn_close:'Cerrar',
+    btn_home:'Inicio', btn_clear:'Borrar Todo', btn_print:'Imprimir', btn_add_emp:'+ Agregar Empleado',
+    topbar_sub:'Creador de Horarios', save_idle:'Sin cambios', save_saving:'Guardando...', save_saved:'Guardado', save_err:'Error al guardar',
+    sb_week:'📅 Configuración Semana', sb_emps:'👥 Empleados', sb_notes:'📝 Notas',
+    lbl_store:'Tienda / Ubicación', lbl_mgr:'Nombre del Gerente', lbl_weekstart:'Inicio Semana (Miér)',
+    lbl_notes_title:'Título de Nota', notes_desc:'Estas notas aparecen abajo cuando se imprime.',
+    empty_title:'Aún no hay empleados', empty_desc:'Agrega empleados usando el panel de la izquierda.',
+    lbl_mgr_hdr:'Gerente', modal_new_title:'Nuevo Horario', lbl_sched_title:'Título del horario (obligatorio)',
+    modal_my_scheds:'Mis Horarios', loading:'Cargando...',
+    no_emps:'Aún no hay empleados.<br>Agrega uno abajo ↓',
+    role_full:'Tiempo Completo', role_part:'Medio Tiempo', role_mgr:'Gerente de Turno', role_train:'En Entrenamiento',
+    stat_emps:'Empleados', stat_shifts:'Turnos Esta Semana', stat_off:'Días Libres', stat_cov:'Cobertura',
+    legend:'Leyenda', leg_open:'Abre', leg_mid:'Turno Medio', leg_close:'Cierra', leg_train:'Entrenamiento', leg_off:'Libre', leg_hint:'Clic derecho en cualquier casilla',
+    ctx_head:'Asignar Turno',
+    hdr_week:'Semana de: —', week_of:'Semana de: '
   }
 };
+const ROLES = {
+  en: { full:'Full Time', part:'Part Time', manager:'Shift Manager', training:'In Training' },
+  es: { full:'Tiempo Completo', part:'Medio Tiempo', manager:'Gerente de Turno', training:'En Entrenamiento' }
+};
+const DAYS_NAMES = {
+  en: ['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'],
+  es: ['Miércoles','Jueves','Viernes','Sábado','Domingo','Lunes','Martes']
+};
 
-function applyLang() {
-  const dict = I18N[currentLang];
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) el.textContent = dict[key];
-  });
-  const labelEn = currentLang === 'en' ? 'Español' : 'English';
-  const a = document.getElementById('langBtnLoginText');
-  const b = document.getElementById('langBtnDashText');
-  if (a) a.textContent = labelEn;
-  if (b) b.textContent = labelEn;
+function t(k) { return TXT[lang][k] || TXT.en[k] || k; }
+
+function applyLang(l) {
+  lang = l;
+  localStorage.setItem('sw_lang', l);
+  document.getElementById('langToggle').textContent = l === 'en' ? '🌐 ES' : '🌐 EN';
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  const nr = document.getElementById('newEmpRole');
+  if (nr) Array.from(nr.options).forEach(o => { const k = {full:'role_full',part:'role_part',manager:'role_mgr',training:'role_train'}[o.value]; if (k) o.textContent = t(k); });
+  if (typeof renderEmployeeList === 'function') renderEmployeeList();
+  if (typeof renderTable === 'function') renderTable();
+}
+function toggleLang() { applyLang(lang === 'en' ? 'es' : 'en'); }
+
+/* ─── AUTH ─── */
+let currentUser = null;
+let currentProfile = null;
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = lang === 'es' ? 'Ingresa tu correo y contraseña.' : 'Enter your email and password.'; return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = lang === 'es' ? 'Correo o contraseña incorrectos.' : 'Incorrect email or password.'; return; }
+  currentUser = data.user;
+  await loadProfile();
+  showDashboard();
 }
 
-function toggleLang() {
-  currentLang = currentLang === 'en' ? 'es' : 'en';
-  localStorage.setItem('sw_lang', currentLang);
-  applyLang();
-}
-
-/* ── STATE ── */
-const DAYS = ['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'];
-const ROLE_LABELS = {manager:'Shift Manager',full:'Full Time',part:'Part Time',training:'In Training'};
-const ROLE_CLASS  = {manager:'role-manager',full:'role-full',part:'role-part',training:'role-training'};
-
-let employees   = [];
-let schedData   = {};
-let empCounter  = 1;
-let ctxCell     = null;
-let currentSchedId  = null;
-let currentSchedTitle = '';
-let currentSchedFile  = ''; // GitHub filename, generated once per schedule and reused
-let saveTimer   = null;
-let saveFileSha = null; // for GitHub update
-
-/* ══════════════════════════════════
-   SPLASH → APP
-══════════════════════════════════ */
-setTimeout(() => {
-  document.getElementById('app').classList.add('visible');
-  // Load GitHub config + language
-  GH_TOKEN  = localStorage.getItem('gh_token') || '';
-  GH_OWNER  = localStorage.getItem('gh_owner') || '';
-  GH_REPO   = localStorage.getItem('gh_repo')  || '';
-  currentLang = localStorage.getItem('sw_lang') || 'en';
-  applyLang();
-  // Check session
-  if (sessionStorage.getItem('sw_auth') === '1') {
-    showDash();
-  } else {
-    showLogin();
-  }
-}, 4200);
-
-/* ══════════════════════════════════
-   AUTH
-══════════════════════════════════ */
-function showLogin() {
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashScreen').style.display  = 'none';
-  document.getElementById('builderScreen').style.display = 'none';
-  applyLang();
-}
-
-function doLogin() {
-  const u = document.getElementById('loginUser').value.trim().toLowerCase();
-  const p = document.getElementById('loginPass').value;
-  if (u === CREDS.username && p === CREDS.password) {
-    sessionStorage.setItem('sw_auth','1');
-    document.getElementById('loginError').style.display = 'none';
-    showDash();
-  } else {
-    const err = document.getElementById('loginError');
-    err.style.display = 'block';
-    document.getElementById('loginPass').value = '';
-    document.getElementById('loginPass').focus();
-  }
-}
-
-function doLogout() {
-  sessionStorage.removeItem('sw_auth');
-  currentSchedId = null;
-  showLogin();
-}
-
-/* ══════════════════════════════════
-   DASHBOARD
-══════════════════════════════════ */
-function showDash() {
-  document.getElementById('loginScreen').style.display  = 'none';
-  document.getElementById('dashScreen').style.display   = 'block';
-  document.getElementById('builderScreen').style.display = 'none';
-  applyLang();
-  checkGhSetup();
-  refreshScheduleList();
-}
-
-function goToDash() {
-  showDash();
-}
-
-function checkGhSetup() {
-  const banner = document.getElementById('ghSetupBanner');
-  if (!GH_OWNER || !GH_REPO || !GH_TOKEN) {
-    banner.style.display = 'block';
-    // Pre-fill fields if partially saved
-    const oi = document.getElementById('ghOwnerInput');
-    const ri = document.getElementById('ghRepoInput');
-    if (oi && GH_OWNER) oi.value = GH_OWNER;
-    if (ri && GH_REPO)  ri.value = GH_REPO;
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-function saveGhToken() {
-  const owner = document.getElementById('ghOwnerInput').value.trim();
-  const repo  = document.getElementById('ghRepoInput').value.trim();
-  const token = document.getElementById('ghTokenInput').value.trim();
-  if (!owner || !repo || !token) { showToast('Please fill in username, repo, and token.'); return; }
-  GH_OWNER = owner;
-  GH_REPO  = repo;
-  GH_TOKEN = token;
-  localStorage.setItem('gh_owner', owner);
-  localStorage.setItem('gh_repo', repo);
-  localStorage.setItem('gh_token', token);
-  checkGhSetup();
-  showToast('GitHub connected ✓');
-  refreshScheduleList();
-}
-
-/* ── Schedule List ── */
-function goToSchedulesList() {
-  refreshScheduleList();
-  const title = document.getElementById('savedSchedulesTitle');
-  const list  = document.getElementById('schedList');
-  if (list) list.scrollIntoView({ behavior:'smooth', block:'start' });
-  if (title) {
-    title.classList.remove('flash');
-    void title.offsetWidth; // restart animation
-    title.classList.add('flash');
-  }
-}
-
-async function refreshScheduleList() {
-  const listEl  = document.getElementById('schedList');
-  const statusEl = document.getElementById('ghStatus');
-
-  // If no GitHub config, load from localStorage
-  if (!GH_OWNER || !GH_REPO || !GH_TOKEN) {
-    statusEl.style.display = 'none';
-    loadLocalScheduleList(listEl);
-    return;
-  }
-
-  statusEl.style.display = 'flex';
-  statusEl.className = 'gh-status';
-  statusEl.innerHTML = '⏳ Loading from GitHub...';
-
-  try {
-    const res = await ghAPI('contents/schedules', 'GET');
-    if (res.status === 404) {
-      // folder doesn't exist yet — no schedules saved to GitHub
-      statusEl.innerHTML = '✅ Connected to GitHub';
-      statusEl.className = 'gh-status ok';
-      listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
-      return;
-    }
-    if (!res.ok) throw new Error('GitHub API error: ' + res.status);
-    const files = await res.json();
-    if (!Array.isArray(files)) throw new Error('Unexpected response from GitHub');
-    statusEl.innerHTML = '✅ Synced with GitHub';
-    statusEl.className = 'gh-status ok';
-    await renderScheduleList(listEl, files.filter(f => f.name.endsWith('.json')));
-  } catch(e) {
-    statusEl.innerHTML = '⚠️ Could not connect to GitHub — showing local saves';
-    statusEl.className = 'gh-status err';
-    loadLocalScheduleList(listEl);
-  }
-}
-
-function loadLocalScheduleList(listEl) {
-  const keys = Object.keys(localStorage).filter(k => k.startsWith('sw_sched_'));
-  if (keys.length === 0) {
-    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
-    return;
-  }
-  const items = keys.map(k => {
-    try { return { id: k.replace('sw_sched_',''), data: JSON.parse(localStorage.getItem(k)) }; }
-    catch(e) { return null; }
-  }).filter(Boolean);
-  renderLocalList(listEl, items);
-}
-
-function renderLocalList(listEl, items) {
-  if (items.length === 0) {
-    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet.</p></div>';
-    return;
-  }
-  listEl.innerHTML = '';
-  items.sort((a,b) => (b.data.updatedAt||0)-(a.data.updatedAt||0));
-  items.forEach(({id, data}) => {
-    const div = makeSchedItem(data.title||id, data.updatedAt, () => openLocalSched(id), () => deleteLocalSched(id));
-    listEl.appendChild(div);
-  });
-}
-
-async function renderScheduleList(listEl, files) {
-  if (files.length === 0) {
-    listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">📭</div><p>No schedules yet. Create your first one!</p></div>';
-    return;
-  }
-  listEl.innerHTML = '<div class="dash-empty"><div class="de-icon">⏳</div><p>Loading schedules…</p></div>';
-
-  // Fetch real title/date from inside each file (not the random filename)
-  const items = await Promise.all(files.map(async f => {
-    try {
-      const res = await ghAPI('contents/schedules/' + f.name, 'GET');
-      if (!res.ok) throw new Error('fetch failed');
-      const json = await res.json();
-      const data = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
-      return { filename: f.name, sha: json.sha, title: data.title || f.name.replace('.json',''), updatedAt: data.updatedAt };
-    } catch(e) {
-      return { filename: f.name, sha: f.sha, title: f.name.replace('.json','').replace(/_/g,' '), updatedAt: null };
-    }
-  }));
-
-  items.sort((a,b) => (b.updatedAt||0)-(a.updatedAt||0));
-
-  listEl.innerHTML = '';
-  items.forEach(it => {
-    const div = makeSchedItem(it.title, it.updatedAt, () => openGhSched(it.filename, it.sha), () => deleteGhSched(it.filename, it.sha));
-    listEl.appendChild(div);
-  });
-}
-
-function makeSchedItem(title, updatedAt, onOpen, onDelete) {
-  const div = document.createElement('div');
-  div.className = 'sched-item';
-  const dateStr = updatedAt ? new Date(updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-  div.innerHTML =
-    '<div class="sched-item-left">'+
-      '<div class="sched-item-title">'+escHtml(title)+'</div>'+
-      (dateStr?'<div class="sched-item-meta">Last edited: '+dateStr+'</div>':'')+
-    '</div>'+
-    '<div class="sched-item-right">'+
-      '<span class="sched-item-badge">Open →</span>'+
-      '<button class="sched-del-btn" title="Delete">🗑</button>'+
-    '</div>';
-  div.querySelector('.sched-item-badge').onclick = (e) => { e.stopPropagation(); onOpen(); };
-  div.querySelector('.sched-del-btn').onclick = (e) => { e.stopPropagation(); onDelete(); };
-  div.onclick = onOpen;
-  return div;
-}
-
-/* ── Create modal ── */
-function openCreateModal() {
-  document.getElementById('createModal').classList.add('open');
-  setTimeout(() => document.getElementById('newSchedTitle').focus(), 100);
-}
-function closeCreateModal() {
-  document.getElementById('createModal').classList.remove('open');
-  document.getElementById('newSchedTitle').value = '';
-}
-
-function createSchedule() {
-  const title = document.getElementById('newSchedTitle').value.trim();
-  if (!title) {
-    document.getElementById('newSchedTitle').style.borderColor = '#cc2200';
-    setTimeout(() => document.getElementById('newSchedTitle').style.borderColor = '#333', 1500);
-    showToast('Please enter a schedule title.');
-    return;
-  }
-  closeCreateModal();
-  const id = 'sched_' + Date.now();
-  currentSchedId    = id;
-  currentSchedTitle = title;
-  currentSchedFile  = sanitizeFilename(title) + '.json'; // generated ONCE, reused on every save
-  // Reset builder state
-  employees  = [];
-  schedData  = {};
-  empCounter = 1;
-  saveFileSha = null;
-  openBuilder(title);
-  triggerSave(); // save immediately so it shows up in the list right away
-}
-
-/* ── Open schedule ── */
-function openLocalSched(id) {
-  const raw = localStorage.getItem('sw_sched_' + id);
-  if (!raw) { showToast('Could not load schedule.'); return; }
-  const data = JSON.parse(raw);
-  currentSchedId    = id;
-  currentSchedTitle = data.title || id;
-  currentSchedFile  = data.file || (sanitizeFilename(currentSchedTitle) + '.json');
-  saveFileSha = null; // will be re-fetched from GitHub on next save if configured
-  loadBuilderData(data);
-  openBuilder(currentSchedTitle);
-}
-
-async function openGhSched(filename, sha) {
-  showToast('Loading...');
-  try {
-    const res  = await ghAPI('contents/schedules/' + filename, 'GET');
-    if (!res.ok) throw new Error('GitHub error ' + res.status);
-    const json = await res.json();
-    const data = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
-    saveFileSha       = json.sha;
-    currentSchedId    = data.title ? ('sched_' + (data.updatedAt || Date.now())) : filename.replace('.json','');
-    currentSchedTitle = data.title || filename.replace('.json','').replace(/_/g,' ');
-    currentSchedFile  = filename; // reuse the exact same file on every future save
-    loadBuilderData(data);
-    openBuilder(currentSchedTitle);
-  } catch(e) {
-    showToast('Failed to load from GitHub.');
-  }
-}
-
-function loadBuilderData(data) {
-  employees  = data.employees  || [];
-  schedData  = data.schedData  || {};
-  empCounter = data.empCounter || (employees.length + 1);
-  setTimeout(() => {
-    if (data.storeName)   document.getElementById('storeName').value   = data.storeName;
-    if (data.managerName) document.getElementById('managerName').value = data.managerName;
-    if (data.weekStart)   document.getElementById('weekStart').value   = data.weekStart;
-    if (data.notes)       document.getElementById('schedNotes').value  = data.notes;
-    if (data.notesTitle){
-      const sel = document.getElementById('notesTitle');
-      for(let i=0;i<sel.options.length;i++){
-        if(sel.options[i].value===data.notesTitle){sel.selectedIndex=i;break;}
-      }
-    }
-    updateHeader();
-    updateDates();
-    renderEmployeeList();
-    renderTable();
-    syncNotes();
-  }, 50);
-}
-
-function openBuilder(title) {
-  document.getElementById('loginScreen').style.display    = 'none';
-  document.getElementById('dashScreen').style.display     = 'none';
-  document.getElementById('builderScreen').style.display  = 'block';
-  document.getElementById('topSchedTitle').textContent    = title;
-  setSaveStatus('ready');
-  // Reset fields if new schedule
-  if (employees.length === 0) {
-    document.getElementById('storeName').value   = '';
-    document.getElementById('managerName').value = '';
-    document.getElementById('schedNotes').value  = '';
-    const ws = document.getElementById('weekStart');
-    if (!ws.value) setDefaultWeek();
-    renderEmployeeList();
-    renderTable();
-    updateHeader();
-    updateDates();
-    syncNotes();
-  }
-}
-
-/* ── Delete ── */
-function deleteLocalSched(id) {
+async function doLogout() {
   swConfirm({
-    icon:'🗑️', badge:'Delete Schedule',
-    message:'Delete this schedule?', sub:'This cannot be undone.',
-    okLabel:'Delete', okColor:'#cc2200',
-    onOk: () => {
-      localStorage.removeItem('sw_sched_' + id);
-      showToast('Schedule deleted.');
-      refreshScheduleList();
-    }
-  });
-}
-
-function deleteGhSched(filename, sha) {
-  swConfirm({
-    icon:'🗑️', badge:'Delete Schedule',
-    message:'Delete "'+filename.replace('.json','').replace(/_/g,' ')+'"?',
-    sub:'It will be permanently removed from GitHub.',
-    okLabel:'Delete', okColor:'#cc2200',
+    icon:'🔒', badge: lang === 'es' ? 'Cerrar Sesión' : 'Log Out',
+    msg: lang === 'es' ? '¿Seguro que deseas cerrar sesión?' : 'Are you sure you want to log out?',
+    sub: '', okLabel: lang === 'es' ? 'Sí, Salir' : 'Yes, Log Out', okColor:'#cc2200',
     onOk: async () => {
-      showToast('Deleting…');
-      try {
-        // Re-fetch the latest sha right before deleting, in case it changed
-        let useSha = sha;
-        try {
-          const fresh = await ghAPI('contents/schedules/'+filename, 'GET');
-          if (fresh.ok) {
-            const freshJson = await fresh.json();
-            if (freshJson && freshJson.sha) useSha = freshJson.sha;
-          }
-        } catch(_) { /* fall back to original sha */ }
-
-        const res = await ghAPI('contents/schedules/'+filename, 'DELETE', {
-          message: 'Delete schedule: '+filename,
-          sha: useSha,
-          branch: GH_BRANCH
-        });
-
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody.message || ('GitHub error '+res.status));
-        }
-
-        // Also clear any local cached copy that points to this same GitHub file
-        Object.keys(localStorage).filter(k => k.startsWith('sw_sched_')).forEach(k => {
-          try {
-            const d = JSON.parse(localStorage.getItem(k));
-            if (d.file === filename) {
-              localStorage.removeItem(k);
-            }
-          } catch(_) {}
-        });
-
-        showToast('Schedule deleted from GitHub ✓');
-        refreshScheduleList();
-      } catch(e) {
-        showToast('Delete failed: ' + (e.message || 'unknown error'));
-      }
+      await sb.auth.signOut();
+      currentUser = null; currentProfile = null;
+      showScreen('loginScreen');
+      document.getElementById('langToggle').classList.remove('show');
     }
   });
 }
 
-/* ══════════════════════════════════
-   BUILDER LOGIC
-══════════════════════════════════ */
-function shiftClass(v) {
-  if (!v) return '';
-  const l = v.toLowerCase().trim();
-  if (l==='off') return 'sh-off';
-  if (l==='x')   return 'sh-x';
-  if (l==='training') return 'sh-training';
-  if (l.includes('close')) return 'sh-close';
-  if (l==='open'||l.startsWith('open')) return 'sh-open';
-  return 'sh-mid';
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = data;
+}
+
+/* ─── SCREENS ─── */
+function showScreen(id) {
+  ['loginScreen','dashboardScreen','adminScreen','editorScreen'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) { el.classList.remove('visible'); el.style.display = ''; }
+  });
+  const target = document.getElementById(id);
+  if (target) { target.classList.add('visible'); }
+}
+
+function showDashboard() {
+  showScreen('dashboardScreen');
+  document.getElementById('langToggle').classList.add('show');
+  const name = currentProfile?.name || currentUser?.email?.split('@')[0] || '';
+  document.getElementById('dashHello').textContent = (lang === 'es' ? 'Hola, ' : 'Hello, ') + name + ' 👋';
+  document.getElementById('dashUserBadge').textContent = currentUser?.email || '';
+  const isAdmin = currentProfile?.role === 'admin';
+  document.getElementById('adminCard').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('dashStatus').textContent = lang === 'es' ? '✓ Conectado a Supabase' : '✓ Connected to Supabase';
+  document.getElementById('dashStatus').className = 'dash-status ok';
+}
+
+function goHome() {
+  currentScheduleId = null;
+  showDashboard();
+}
+
+/* ─── OVERLAYS ─── */
+function openOverlay(id)  { document.getElementById(id).classList.add('visible'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('visible'); }
+
+/* ─── SCHEDULE CRUD ─── */
+let currentScheduleId = null;
+let autosaveTimer = null;
+
+function openTitlePrompt() {
+  document.getElementById('newScheduleTitle').value = '';
+  document.getElementById('titleError').textContent = '';
+  openOverlay('titleOverlay');
+  setTimeout(() => document.getElementById('newScheduleTitle').focus(), 120);
+}
+
+async function createSchedule() {
+  const title = document.getElementById('newScheduleTitle').value.trim();
+  const errEl = document.getElementById('titleError');
+  if (!title) { errEl.textContent = lang === 'es' ? 'El título es obligatorio.' : 'Title is required.'; return; }
+  errEl.textContent = '';
+  const initialData = { employees:[], schedData:{}, storeName:'', managerName:'', weekStart:getDefaultWed(), notesTitle:'Notes', schedNotes:'', empCounter:1 };
+  const { data, error } = await sb.from('schedules').insert({
+    user_id: currentUser.id,
+    user_email: currentUser.email,
+    user_name: currentProfile?.name || currentUser.email.split('@')[0],
+    title,
+    data: initialData
+  }).select().single();
+  if (error) { showToast('Error: ' + error.message); return; }
+  currentScheduleId = data.id;
+  closeOverlay('titleOverlay');
+  loadStateIntoEditor({ title, ...initialData });
+  openEditor();
+  showToast((lang === 'es' ? 'Horario "' : 'Schedule "') + title + (lang === 'es' ? '" creado ✓' : '" created ✓'));
+}
+
+async function openMySchedules() {
+  openOverlay('mySchedsOverlay');
+  const body = document.getElementById('mySchedsBody');
+  body.innerHTML = '<div class="sched-empty">' + t('loading') + '</div>';
+  const { data, error } = await sb.from('schedules')
+    .select('id, title, created_at, updated_at')
+    .eq('user_id', currentUser.id)
+    .order('updated_at', { ascending: false });
+  if (error || !data) { body.innerHTML = '<div class="sched-empty">Error: ' + (error?.message || '?') + '</div>'; return; }
+  renderSchedList(body, data, false);
+}
+
+function renderSchedList(container, list, isAdmin) {
+  container.innerHTML = '';
+  if (!list.length) {
+    const d = document.createElement('div');
+    d.className = 'sched-empty';
+    d.textContent = lang === 'es' ? 'No hay horarios aún.' : 'No schedules yet.';
+    container.appendChild(d);
+    return;
+  }
+  list.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'sched-item';
+
+    const info = document.createElement('div');
+    info.className = 'sched-item-info';
+    info.style.flex = '1';
+    const t1 = document.createElement('div');
+    t1.className = 'si-title';
+    t1.textContent = item.title;
+    const t2 = document.createElement('div');
+    t2.className = 'si-meta';
+    const d = new Date(item.updated_at || item.created_at);
+    t2.textContent = (lang === 'es' ? 'Actualizado: ' : 'Updated: ') + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    info.appendChild(t1);
+    info.appendChild(t2);
+    info.addEventListener('click', () => loadScheduleById(item.id, isAdmin));
+
+    const acts = document.createElement('div');
+    acts.className = 'sched-item-actions';
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn btn-green btn-sm';
+    openBtn.textContent = lang === 'es' ? 'Abrir' : 'Open';
+    openBtn.addEventListener('click', () => loadScheduleById(item.id, isAdmin));
+
+    if (!isAdmin) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-outline btn-sm';
+      delBtn.textContent = '🗑';
+      delBtn.style.color = '#cc2200';
+      delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); deleteSchedule(item.id, item.title); });
+      acts.appendChild(openBtn);
+      acts.appendChild(delBtn);
+    } else {
+      acts.appendChild(openBtn);
+    }
+
+    row.appendChild(info);
+    row.appendChild(acts);
+    container.appendChild(row);
+  });
+}
+
+async function loadScheduleById(id, fromAdmin) {
+  showToast(lang === 'es' ? 'Cargando horario...' : 'Loading schedule...');
+  const { data, error } = await sb.from('schedules').select('*').eq('id', id).single();
+  if (error || !data) { showToast('Error loading schedule'); return; }
+  currentScheduleId = id;
+  closeOverlay('mySchedsOverlay');
+  closeOverlay('adminUserSchedsOverlay');
+  const state = data.data || {};
+  state.title = data.title;
+  loadStateIntoEditor(state);
+  openEditor();
+  showToast('"' + data.title + '" ' + (lang === 'es' ? 'cargado ✓' : 'loaded ✓'));
+}
+
+async function deleteSchedule(id, title) {
+  swConfirm({
+    icon:'🗑️', badge: lang === 'es' ? 'Eliminar Horario' : 'Delete Schedule',
+    msg: lang === 'es' ? '¿Eliminar "' + title + '" permanentemente?' : 'Delete "' + title + '" permanently?',
+    sub: lang === 'es' ? 'Esta acción no se puede deshacer.' : 'This cannot be undone.',
+    okLabel: lang === 'es' ? 'Sí, Eliminar' : 'Yes, Delete', okColor:'#cc2200',
+    onOk: async () => {
+      const { error } = await sb.from('schedules').delete().eq('id', id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast(lang === 'es' ? 'Horario eliminado.' : 'Schedule deleted.');
+      openMySchedules();
+    }
+  });
+}
+
+/* ─── ADMIN PANEL ─── */
+async function openAdminPanel() {
+  showScreen('adminScreen');
+  document.getElementById('langToggle').classList.add('show');
+  applyLang(lang);
+  const listEl = document.getElementById('adminUsersList');
+  listEl.innerHTML = '<div class="sched-empty">' + t('loading') + '</div>';
+  const { data: users, error } = await sb.from('profiles').select('*').order('created_at');
+  if (error || !users) { listEl.innerHTML = '<div class="sched-empty">Error: ' + (error?.message || '?') + '</div>'; return; }
+
+  // get schedule counts per user
+  const { data: schedCounts } = await sb.from('schedules').select('user_id');
+  const countMap = {};
+  (schedCounts || []).forEach(s => { countMap[s.user_id] = (countMap[s.user_id] || 0) + 1; });
+
+  listEl.innerHTML = '';
+  users.forEach(user => {
+    const card = document.createElement('div');
+    card.className = 'user-card';
+
+    const info = document.createElement('div');
+    info.className = 'user-card-info';
+
+    const nameRow = document.createElement('div');
+    nameRow.style.display = 'flex';
+    nameRow.style.alignItems = 'center';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'user-card-name';
+    nameEl.textContent = user.name || user.email.split('@')[0];
+
+    const roleBadge = document.createElement('span');
+    roleBadge.className = user.role === 'admin' ? 'badge-admin' : 'badge-user';
+    roleBadge.textContent = user.role;
+
+    nameRow.appendChild(nameEl);
+    nameRow.appendChild(roleBadge);
+
+    const emailEl = document.createElement('div');
+    emailEl.className = 'user-card-email';
+    emailEl.textContent = user.email;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'user-card-meta';
+    const count = countMap[user.id] || 0;
+    metaEl.textContent = count + (lang === 'es' ? ' horario(s)' : ' schedule(s)');
+
+    info.appendChild(nameRow);
+    info.appendChild(emailEl);
+    info.appendChild(metaEl);
+
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'btn btn-yellow btn-sm';
+    viewBtn.textContent = lang === 'es' ? 'Ver Horarios' : 'View Schedules';
+    viewBtn.addEventListener('click', () => openAdminUserSchedules(user.id, user.name || user.email));
+
+    card.appendChild(info);
+    card.appendChild(viewBtn);
+    listEl.appendChild(card);
+  });
+}
+
+async function openAdminUserSchedules(userId, userName) {
+  document.getElementById('adminUserSchedsTitle').textContent = userName + (lang === 'es' ? ' — Horarios' : ' — Schedules');
+  openOverlay('adminUserSchedsOverlay');
+  const body = document.getElementById('adminUserSchedsBody');
+  body.innerHTML = '<div class="sched-empty">' + t('loading') + '</div>';
+  const { data, error } = await sb.from('schedules')
+    .select('id, title, created_at, updated_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+  if (error) { body.innerHTML = '<div class="sched-empty">Error: ' + error.message + '</div>'; return; }
+  renderSchedList(body, data || [], true);
+}
+
+/* ─── EDITOR ─── */
+let employees = [];
+let schedData = {};
+let empCounter = 1;
+let ctxCell = null;
+const NDAYS = 7;
+
+function openEditor() {
+  showScreen('editorScreen');
+  document.getElementById('langToggle').classList.add('show');
+}
+
+function loadStateIntoEditor(state) {
+  employees  = state.employees  || [];
+  schedData  = state.schedData  || {};
+  empCounter = state.empCounter || (employees.length ? Math.max(...employees.map(e => e.id)) + 1 : 1);
+  document.getElementById('hdrTitle').textContent  = state.title       || 'Weekly Schedule';
+  document.getElementById('storeName').value        = state.storeName   || '';
+  document.getElementById('managerName').value      = state.managerName || '';
+  document.getElementById('weekStart').value        = state.weekStart   || getDefaultWed();
+  document.getElementById('notesTitle').value       = state.notesTitle  || 'Notes';
+  document.getElementById('schedNotes').value       = state.schedNotes  || '';
+  updateHeader();
+  updateDates();
+  renderEmployeeList();
+  renderTable();
+  syncNotes();
+  setSave('saved', t('save_saved'));
+}
+
+function collectState() {
+  return {
+    title:       document.getElementById('hdrTitle').textContent,
+    storeName:   document.getElementById('storeName').value,
+    managerName: document.getElementById('managerName').value,
+    weekStart:   document.getElementById('weekStart').value,
+    notesTitle:  document.getElementById('notesTitle').value,
+    schedNotes:  document.getElementById('schedNotes').value,
+    employees, schedData, empCounter
+  };
+}
+
+function setSave(state, text) {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  el.className = 'save-indicator ' + state;
+  document.getElementById('saveText').textContent = text;
+}
+
+function schedSave() {
+  if (!currentScheduleId) return;
+  setSave('saving', t('save_saving'));
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(doAutosave, 1500);
+}
+
+async function doAutosave() {
+  if (!currentScheduleId) return;
+  try {
+    const state = collectState();
+    const { error } = await sb.from('schedules').update({
+      title: state.title, data: state, updated_at: new Date().toISOString()
+    }).eq('id', currentScheduleId);
+    if (error) throw error;
+    setSave('saved', t('save_saved'));
+  } catch (e) {
+    setSave('error', t('save_err'));
+    showToast((lang === 'es' ? 'Error al guardar: ' : 'Save error: ') + e.message);
+  }
+}
+
+function getDefaultWed() {
+  const today = new Date(); const day = today.getDay();
+  let diff = (3 - day + 7) % 7;
+  if (diff === 0 && today.getHours() >= 20) diff = 7;
+  const wed = new Date(today); wed.setDate(today.getDate() + diff);
+  return wed.toISOString().split('T')[0];
 }
 
 function updateHeader() {
   const mgr   = document.getElementById('managerName').value.trim();
   const store = document.getElementById('storeName').value.trim();
-  const hm = document.getElementById('hdrMgr');
-  const hs = document.getElementById('hdrStore');
-  if(hm) hm.textContent = mgr   || '—';
-  if(hs) hs.textContent = store || '';
+  document.getElementById('hdrMgr').textContent   = mgr   || '—';
+  document.getElementById('hdrStore').textContent = store || '';
+  schedSave();
 }
 
 function updateDates() {
   const ws = document.getElementById('weekStart').value;
-  const hw = document.getElementById('hdrWeek');
-  if (!ws) { if(hw) hw.textContent='Week of: —'; rebuildHead(); return; }
-  const base = new Date(ws+'T00:00:00');
-  const end  = new Date(base); end.setDate(base.getDate()+6);
-  const fmt  = d => (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
-  if(hw) hw.textContent = 'Week of: '+fmt(base)+' – '+fmt(end);
-  rebuildHead();
+  if (!ws) { document.getElementById('hdrWeek').textContent = t('hdr_week'); rebuildHead(); schedSave(); return; }
+  const base = new Date(ws + 'T00:00:00');
+  const end  = new Date(base); end.setDate(base.getDate() + 6);
+  const fmt = d => (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  document.getElementById('hdrWeek').textContent = t('week_of') + fmt(base) + ' – ' + fmt(end);
+  rebuildHead(); schedSave();
 }
 
 function getDates() {
   const ws = document.getElementById('weekStart').value;
-  if (!ws) return DAYS.map(()=>'');
-  const base = new Date(ws+'T00:00:00');
-  return DAYS.map((_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return(d.getMonth()+1)+'/'+(d.getDate());});
+  if (!ws) return Array(NDAYS).fill('');
+  const base = new Date(ws + 'T00:00:00');
+  return Array.from({length:NDAYS}, (_,i) => { const d = new Date(base); d.setDate(base.getDate()+i); return (d.getMonth()+1)+'/'+d.getDate(); });
 }
 
 function rebuildHead() {
   const dates = getDates();
+  const days = DAYS_NAMES[lang] || DAYS_NAMES.en;
   const tr = document.getElementById('tHead');
-  if(!tr) return;
-  tr.innerHTML = '<th>Employee</th>';
-  DAYS.forEach((day,i)=>{
+  tr.innerHTML = '';
+  const empTh = document.createElement('th'); empTh.textContent = 'Employee'; tr.appendChild(empTh);
+  days.forEach((day, i) => {
     const th = document.createElement('th');
-    th.innerHTML='<span class="th-day">'+day+'</span><span class="th-date">'+dates[i]+'</span>';
-    tr.appendChild(th);
+    const ds = document.createElement('span'); ds.className = 'th-day'; ds.textContent = day;
+    const dt = document.createElement('span'); dt.className = 'th-date'; dt.textContent = dates[i];
+    th.appendChild(ds); th.appendChild(dt); tr.appendChild(th);
   });
+}
+
+function shiftClass(v) {
+  if (!v) return '';
+  const l = v.toLowerCase().trim();
+  if (l === 'off') return 'sh-off';
+  if (l === 'x')   return 'sh-x';
+  if (l === 'training') return 'sh-training';
+  if (l.includes('close')) return 'sh-close';
+  if (l === 'open' || l.startsWith('open')) return 'sh-open';
+  return 'sh-mid';
 }
 
 function renderEmployeeList() {
   const el = document.getElementById('empList');
-  if(!el) return;
-  if (employees.length===0) {
-    el.innerHTML='<div style="text-align:center;padding:16px 0;color:#ccc;font-size:12px">No employees yet.<br>Add one below ↓</div>';
-    return;
+  const rl = ROLES[lang] || ROLES.en;
+  el.innerHTML = '';
+  if (!employees.length) {
+    const d = document.createElement('div');
+    d.style.cssText = 'text-align:center;padding:18px 0;color:#ccc;font-size:12px';
+    d.innerHTML = t('no_emps');
+    el.appendChild(d); return;
   }
-  el.innerHTML='';
-  employees.forEach(emp=>{
-    const div=document.createElement('div');
-    div.className='employee-chip';
-    div.innerHTML='<span>'+escHtml(emp.name)+'</span>'+
-      '<div class="chip-right">'+
-        '<span class="role-badge '+ROLE_CLASS[emp.role]+'">'+ROLE_LABELS[emp.role]+'</span>'+
-        '<button class="chip-del" onclick="removeEmp('+emp.id+')" title="Remove">×</button>'+
-      '</div>';
-    el.appendChild(div);
+  employees.forEach(emp => {
+    const chip = document.createElement('div'); chip.className = 'emp-chip';
+    const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
+    const right = document.createElement('div'); right.className = 'chip-right';
+    const badge = document.createElement('span');
+    badge.className = 'role-badge role-' + emp.role;
+    badge.textContent = rl[emp.role] || emp.role;
+    const del = document.createElement('button');
+    del.className = 'chip-del'; del.textContent = '×';
+    del.addEventListener('click', () => removeEmp(emp.id));
+    right.appendChild(badge); right.appendChild(del);
+    chip.appendChild(nameSpan); chip.appendChild(right);
+    el.appendChild(chip);
   });
 }
 
 function renderTable() {
   rebuildHead();
-  const tbody=document.getElementById('tBody');
-  if(!tbody) return;
-  tbody.innerHTML='';
-  const show=employees.length>0;
-  const es=document.getElementById('emptyState');
-  const sw=document.getElementById('schedWrap');
-  if(es) es.style.display=show?'none':'block';
-  if(sw) sw.style.display=show?'block':'none';
-
-  employees.forEach(emp=>{
-    const tr=document.createElement('tr');
-    const nameTd=document.createElement('td');
-    nameTd.innerHTML='<div class="emp-name-wrap"><span>'+escHtml(emp.name)+'</span><span class="emp-role-label">'+ROLE_LABELS[emp.role]+'</span></div>';
-    tr.appendChild(nameTd);
-    DAYS.forEach((_,di)=>{
-      const key=emp.id+'_'+di;
-      const val=schedData[key]||'';
-      const td=document.createElement('td');
-      const inp=document.createElement('input');
-      inp.type='text';
-      inp.className='shift-input '+shiftClass(val);
-      inp.value=val;
-      inp.placeholder='—';
-      inp.dataset.key=key;
-      inp.addEventListener('input',function(){
-        schedData[this.dataset.key]=this.value;
-        this.className='shift-input '+shiftClass(this.value);
-        updateTotals();
-        triggerSave();
+  const rl = ROLES[lang] || ROLES.en;
+  const tbody = document.getElementById('tBody');
+  tbody.innerHTML = '';
+  const show = employees.length > 0;
+  document.getElementById('emptyState').style.display = show ? 'none' : 'block';
+  document.getElementById('schedWrap').style.display  = show ? 'block' : 'none';
+  employees.forEach(emp => {
+    const tr = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    const wrap = document.createElement('div'); wrap.className = 'emp-name-wrap';
+    const ns = document.createElement('span'); ns.textContent = emp.name;
+    const rs = document.createElement('span'); rs.className = 'emp-role-lbl'; rs.textContent = rl[emp.role] || emp.role;
+    wrap.appendChild(ns); wrap.appendChild(rs); nameTd.appendChild(wrap); tr.appendChild(nameTd);
+    for (let di = 0; di < NDAYS; di++) {
+      const key = emp.id + '_' + di;
+      const val = schedData[key] || '';
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'shift-input ' + shiftClass(val);
+      inp.value = val; inp.placeholder = '—'; inp.dataset.key = key;
+      inp.addEventListener('input', function() {
+        schedData[this.dataset.key] = this.value;
+        this.className = 'shift-input ' + shiftClass(this.value);
+        updateTotals(); schedSave();
       });
-      inp.addEventListener('contextmenu',function(e){
-        e.preventDefault();
-        ctxCell=this;
-        showCtx(e.clientX,e.clientY);
+      inp.addEventListener('contextmenu', function(e) {
+        e.preventDefault(); ctxCell = this; showCtx(e.clientX, e.clientY);
       });
-      td.appendChild(inp);
-      tr.appendChild(td);
-    });
+      td.appendChild(inp); tr.appendChild(td);
+    }
     tbody.appendChild(tr);
   });
   updateTotals();
 }
 
 function updateTotals() {
-  let shifts=0,offs=0,total=employees.length*7;
-  employees.forEach(emp=>{
-    DAYS.forEach((_,di)=>{
-      const v=(schedData[emp.id+'_'+di]||'').toLowerCase().trim();
-      if(v&&v!=='x') shifts++;
-      if(v==='off') offs++;
-    });
+  let shifts = 0, offs = 0, total = employees.length * NDAYS;
+  employees.forEach(emp => {
+    for (let di = 0; di < NDAYS; di++) {
+      const v = (schedData[emp.id+'_'+di]||'').toLowerCase().trim();
+      if (v && v !== 'x') shifts++;
+      if (v === 'off') offs++;
+    }
   });
-  const te=document.getElementById('totEmp');
-  const ts=document.getElementById('totShifts');
-  const to=document.getElementById('totOff');
-  const tp=document.getElementById('totPct');
-  if(te) te.textContent=employees.length;
-  if(ts) ts.textContent=shifts;
-  if(to) to.textContent=offs;
-  const pct=total>0?Math.round((shifts/total)*100):0;
-  if(tp) tp.textContent=total>0?pct+'%':'—';
+  document.getElementById('totEmp').textContent    = employees.length;
+  document.getElementById('totShifts').textContent = shifts;
+  document.getElementById('totOff').textContent    = offs;
+  document.getElementById('totPct').textContent    = total > 0 ? Math.round((shifts/total)*100)+'%' : '—';
 }
 
 function syncNotes() {
-  const notes  = document.getElementById('schedNotes').value.trim();
-  const title  = document.getElementById('notesTitle').value;
-  const pn     = document.getElementById('printNotes');
-  const pnl    = document.getElementById('printNotesLabel');
-  const pnt    = document.getElementById('printNotesText');
-  if(pnl) pnl.textContent = '📝 '+title;
-  if(pnt) pnt.textContent = notes;
-  if(pn)  pn.style.display = notes ? '' : 'none';
+  const notes = document.getElementById('schedNotes').value.trim();
+  const title = document.getElementById('notesTitle').value;
+  document.getElementById('printNotesLabel').textContent = '📝 ' + title;
+  document.getElementById('printNotesText').textContent  = notes;
+  document.getElementById('printNotes').style.display    = notes ? '' : 'none';
+  schedSave();
 }
 
 function addEmployee() {
-  const name=document.getElementById('newEmpName').value.trim();
-  const role=document.getElementById('newEmpRole').value;
-  if(!name){showToast('Enter an employee name.');document.getElementById('newEmpName').focus();return;}
-  employees.push({id:empCounter++,name,role});
-  document.getElementById('newEmpName').value='';
-  renderEmployeeList();
-  renderTable();
-  triggerSave();
-  showToast(name+' added ✓');
+  const name = document.getElementById('newEmpName').value.trim();
+  const role = document.getElementById('newEmpRole').value;
+  if (!name) { showToast(lang === 'es' ? 'Escribe el nombre del empleado.' : 'Please enter an employee name.'); document.getElementById('newEmpName').focus(); return; }
+  employees.push({ id:empCounter++, name, role });
+  document.getElementById('newEmpName').value = '';
+  renderEmployeeList(); renderTable();
+  showToast(name + (lang === 'es' ? ' agregado ✓' : ' added to schedule ✓'));
+  schedSave();
 }
 
 function removeEmp(id) {
-  const emp=employees.find(e=>e.id===id);
+  const emp = employees.find(e => e.id === id);
   swConfirm({
-    icon:'🗑️',badge:'Remove Employee',
-    message:'Remove '+(emp?emp.name:'employee')+' from schedule?',
-    sub:'All their shifts will be deleted.',
-    okLabel:'Yes, Remove',okColor:'#cc2200',
-    onOk:()=>{
-      employees=employees.filter(e=>e.id!==id);
-      DAYS.forEach((_,di)=>delete schedData[id+'_'+di]);
-      renderEmployeeList();renderTable();triggerSave();
-      showToast((emp?emp.name:'Employee')+' removed.');
+    icon:'🗑️', badge: lang === 'es' ? 'Eliminar Empleado' : 'Remove Employee',
+    msg: (lang === 'es' ? '¿Eliminar a ' : 'Remove ') + (emp ? emp.name : '') + (lang === 'es' ? ' del horario?' : ' from the schedule?'),
+    sub: lang === 'es' ? 'Se eliminarán todos sus turnos.' : 'All their shifts will be deleted.',
+    okLabel: lang === 'es' ? 'Sí, Eliminar' : 'Yes, Remove', okColor:'#cc2200',
+    onOk: () => {
+      employees = employees.filter(e => e.id !== id);
+      for (let di = 0; di < NDAYS; di++) delete schedData[id+'_'+di];
+      renderEmployeeList(); renderTable();
+      showToast((emp ? emp.name : '') + (lang === 'es' ? ' eliminado.' : ' removed.'));
+      schedSave();
     }
   });
 }
 
 function clearAll() {
   swConfirm({
-    icon:'🧹',badge:'Clear Schedule',
-    message:'Clear all shifts for this week?',
-    sub:'Employee names stay — only shift data is removed.',
-    okLabel:'Yes, Clear',okColor:'#cc2200',
-    onOk:()=>{schedData={};renderTable();triggerSave();showToast('Shifts cleared.');}
+    icon:'🧹', badge: lang === 'es' ? 'Borrar Horario' : 'Clear Schedule',
+    msg: lang === 'es' ? '¿Borrar todos los turnos de esta semana?' : 'Clear all shifts for this week?',
+    sub: lang === 'es' ? 'Los empleados se mantienen.' : 'Employees stay — only shift data will be removed.',
+    okLabel: lang === 'es' ? 'Sí, Borrar Todo' : 'Yes, Clear All', okColor:'#cc2200',
+    onOk: () => { schedData={}; renderTable(); showToast(lang === 'es' ? 'Turnos borrados.' : 'All shifts cleared.'); schedSave(); }
   });
 }
 
-/* ── Context menu ── */
-function showCtx(x,y) {
-  const menu=document.getElementById('ctxMenu');
-  const mw=200,mh=370;
-  menu.style.left=(x+mw>window.innerWidth?x-mw:x)+'px';
-  menu.style.top=(y+mh>window.innerHeight?y-mh:y)+'px';
-  menu.classList.add('visible');
+/* ─── CONTEXT MENU ─── */
+function showCtx(x, y) {
+  const m = document.getElementById('ctxMenu');
+  const mw=200, mh=360;
+  m.style.left = (x+mw>window.innerWidth  ? x-mw : x)+'px';
+  m.style.top  = (y+mh>window.innerHeight ? y-mh : y)+'px';
+  m.classList.add('visible');
 }
-function hideCtx(){document.getElementById('ctxMenu').classList.remove('visible');}
-function ctxApply(val){
-  if(ctxCell){
-    ctxCell.value=val;
-    schedData[ctxCell.dataset.key]=val;
-    ctxCell.className='shift-input '+shiftClass(val);
-    updateTotals();triggerSave();
+function hideCtx() { document.getElementById('ctxMenu').classList.remove('visible'); }
+function ctxApply(val) {
+  if (ctxCell) {
+    ctxCell.value = val; schedData[ctxCell.dataset.key] = val;
+    ctxCell.className = 'shift-input ' + shiftClass(val);
+    updateTotals(); schedSave();
   }
   hideCtx();
 }
-document.addEventListener('click',hideCtx);
-document.addEventListener('contextmenu',e=>{if(!e.target.classList.contains('shift-input'))hideCtx();});
+document.addEventListener('click', hideCtx);
+document.addEventListener('contextmenu', e => { if (!e.target.classList.contains('shift-input')) hideCtx(); });
 
-/* ══════════════════════════════════
-   SAVE SYSTEM
-══════════════════════════════════ */
-function setSaveStatus(state,msg) {
-  const dot   = document.getElementById('saveDot');
-  const label = document.getElementById('saveLabel');
-  if(!dot||!label) return;
-  dot.className = 'save-dot '+state;
-  const map = {ready:'Ready',saving:'Saving…',saved:'Saved ✓',error:'Save failed'};
-  label.textContent = msg || map[state] || state;
+/* ─── CONFIRM MODAL ─── */
+function swConfirm({icon='⚠️', badge='Confirm', msg='', sub='', okLabel='OK', okColor='#cc2200', onOk}) {
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmIcon').textContent  = icon;
+  document.getElementById('confirmBadge').textContent = badge;
+  document.getElementById('confirmMsg').textContent   = msg;
+  document.getElementById('confirmSub').textContent   = sub;
+  const ok = document.getElementById('confirmOk');
+  const cancel = document.getElementById('confirmCancel');
+  ok.textContent = okLabel; ok.style.background = okColor;
+  cancel.textContent = lang === 'es' ? 'Cancelar' : 'Cancel';
+  modal.classList.add('visible');
+  const close = () => modal.classList.remove('visible');
+  ok.onclick = () => { close(); onOk(); };
+  cancel.onclick = close;
+  modal.onclick = e => { if (e.target === modal) close(); };
 }
 
-function buildSavePayload() {
-  return {
-    title:       currentSchedTitle,
-    file:        currentSchedFile,
-    storeName:   document.getElementById('storeName').value,
-    managerName: document.getElementById('managerName').value,
-    weekStart:   document.getElementById('weekStart').value,
-    notes:       document.getElementById('schedNotes').value,
-    notesTitle:  document.getElementById('notesTitle').value,
-    employees,
-    schedData,
-    empCounter,
-    updatedAt:   Date.now()
-  };
-}
-
-function triggerSave() {
-  if (saveTimer) clearTimeout(saveTimer);
-  setSaveStatus('saving');
-  saveTimer = setTimeout(doSave, 1200);
-}
-
-async function doSave() {
-  const payload = buildSavePayload();
-
-  // Always save to localStorage as backup
-  localStorage.setItem('sw_sched_' + currentSchedId, JSON.stringify(payload));
-
-  // If GitHub configured, also save there
-  if (GH_OWNER && GH_REPO && GH_TOKEN) {
-    try {
-      if (!currentSchedFile) currentSchedFile = sanitizeFilename(currentSchedTitle) + '.json';
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-      const body = {
-        message: 'Update: ' + currentSchedTitle,
-        content,
-        branch: GH_BRANCH
-      };
-      // Always fetch the latest sha right before saving to avoid 409 conflicts
-      try {
-        const existing = await ghAPI('contents/schedules/' + currentSchedFile, 'GET');
-        if (existing.ok) {
-          const existingJson = await existing.json();
-          if (existingJson && existingJson.sha) saveFileSha = existingJson.sha;
-        }
-      } catch(_) { /* file probably doesn't exist yet, that's fine */ }
-
-      if (saveFileSha) body.sha = saveFileSha;
-
-      const res  = await ghAPI('contents/schedules/' + currentSchedFile, 'PUT', body);
-      if (!res.ok) {
-        const errBody = await res.json().catch(()=>({}));
-        throw new Error(errBody.message || ('GitHub error ' + res.status));
-      }
-      const json = await res.json();
-      if (json.content && json.content.sha) saveFileSha = json.content.sha;
-      setSaveStatus('saved');
-    } catch(e) {
-      setSaveStatus('error');
-    }
-  } else {
-    setSaveStatus('saved','Saved locally');
-  }
-}
-
-/* ══════════════════════════════════
-   GITHUB API HELPER
-══════════════════════════════════ */
-function ghAPI(path, method, body) {
-  const url = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/'+path;
-  const opts = {
-    method,
-    headers: {
-      'Authorization': 'token ' + GH_TOKEN,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json'
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  return fetch(url, opts);
-}
-
-/* ══════════════════════════════════
-   HELPERS
-══════════════════════════════════ */
-function sanitizeFilename(s) {
-  const base = String(s||'untitled').replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').toLowerCase().substring(0,50);
-  // Short unique suffix so two schedules with the same title don't collide
-  const suffix = Math.random().toString(36).substring(2,8);
-  return base + '_' + suffix;
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+/* ─── TOAST ─── */
 function showToast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2900);
 }
 
-function setDefaultWeek() {
-  const today=new Date();const day=today.getDay();
-  let diff=(3-day+7)%7;
-  if(diff===0&&today.getHours()>=20)diff=7;
-  const wed=new Date(today);wed.setDate(today.getDate()+diff);
-  const y=wed.getFullYear();
-  const m=String(wed.getMonth()+1).padStart(2,'0');
-  const d=String(wed.getDate()).padStart(2,'0');
-  document.getElementById('weekStart').value=y+'-'+m+'-'+d;
-  updateDates();
-}
-
-/* ── Confirmation modal ── */
-function swConfirm({icon='⚠️',badge='Confirmation',message,sub='',okLabel='Confirm',okColor='#cc2200',onOk}) {
-  const modal=document.getElementById('swModal');
-  document.getElementById('swModalIcon').textContent=icon;
-  document.getElementById('swModalBadge').textContent=badge;
-  document.getElementById('swModalMsg').textContent=message;
-  document.getElementById('swModalSub').textContent=sub||'';
-  const okBtn=document.getElementById('swModalOk');
-  okBtn.textContent=okLabel;
-  okBtn.style.background=okColor;
-  modal.classList.add('open');
-  const close=()=>modal.classList.remove('open');
-  okBtn.onclick=()=>{close();onOk();};
-  document.getElementById('swModalCancel').onclick=close;
-  modal.onclick=e=>{if(e.target===modal)close();};
-}
+/* ─── INIT ─── */
+window.addEventListener('DOMContentLoaded', async () => {
+  applyLang(lang);
+  const splash = document.getElementById('splashScreen');
+  setTimeout(() => {
+    splash.classList.add('out');
+    setTimeout(async () => {
+      splash.style.display = 'none';
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        await loadProfile();
+        showDashboard();
+      } else {
+        showScreen('loginScreen');
+        document.getElementById('langToggle').classList.add('show');
+      }
+    }, 480);
+  }, 2400);
+});
 </script>
 </body>
 </html>
