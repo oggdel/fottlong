@@ -71,7 +71,7 @@ async function openQRModal(){
   const qrDiv=document.getElementById('qrCode');
 
   st.className='qr-status';
-  st.textContent=currentLang==='es'?'Capturando el horario en alta calidad...':'Capturing schedule in high quality...';
+  st.textContent=currentLang==='es'?'Preparando captura en alta calidad...':'Preparing high quality capture...';
   prev.style.display='none';
   wrap.style.display='none';
   steps.style.display='none';
@@ -86,21 +86,35 @@ async function openQRModal(){
     return;
   }
 
+  // Off-screen unconstrained container — no overflow clipping
+  const offscreen=document.createElement('div');
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
+  document.body.appendChild(offscreen);
+
+  const clone=el.cloneNode(true);
+  offscreen.appendChild(clone);
+
+  // Copy live .value from inputs (cloneNode only copies the HTML attribute, not the JS property)
+  const origInputs=Array.from(el.querySelectorAll('.shi'));
+  const cloneInputs=Array.from(clone.querySelectorAll('.shi'));
+  origInputs.forEach((inp,i)=>{ if(cloneInputs[i]) cloneInputs[i].value=inp.value; });
+
+  // Two frames so browser lays out the clone at full natural size
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
   try{
-    // 3.5x scale for near-4K quality with full colors
-    // Capture at the element's full natural width (like print landscape)
-    const canvas=await html2canvas(el,{
+    st.textContent=currentLang==='es'?'Capturando en 4K...':'Capturing in 4K...';
+    const canvas=await html2canvas(clone,{
       scale:3.5,
       useCORS:true,
       backgroundColor:'#ffffff',
       logging:false,
-      allowTaint:true,
-      width:el.scrollWidth,
-      height:el.scrollHeight,
-      windowWidth:el.scrollWidth + 40,
       scrollX:0,
-      scrollY:-window.scrollY
+      scrollY:0
     });
+
+    document.body.removeChild(offscreen);
+
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -120,8 +134,6 @@ async function openQRModal(){
 
       const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
       const imgUrl=ud.publicUrl;
-
-      // QR points to THIS page with ?imgurl= param so phone gets full share UI
       const baseUrl=window.location.href.split('?')[0];
       const shareUrl=baseUrl+'?imgurl='+encodeURIComponent(imgUrl);
 
@@ -129,252 +141,12 @@ async function openQRModal(){
       new QRCode(qrDiv,{text:shareUrl,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
       wrap.style.display='flex';
       steps.style.display='block';
-      st.textContent=currentLang==='es'?'✓ Listo — escanea el QR con tu teléfono':'✓ Ready — scan the QR with your phone camera';
+      st.textContent=currentLang==='es'?'✓ Listo — escanea el QR con la cámara de tu teléfono':'✓ Ready — scan the QR with your phone camera';
       st.className='qr-status ok';
     },'image/png');
 
   }catch(e){
-    st.textContent='Error: '+e.message;
-    st.className='qr-status err';
-  }
-}
-
-function closeQRModal(){
-  document.getElementById('qrModal').classList.remove('on');
-  document.getElementById('qrCode').innerHTML='';
-  _schedBlob=null;
-}
-
-function downloadSchedImg(){
-  if(!_schedBlob) return;
-  const url=URL.createObjectURL(_schedBlob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='schedule_'+Date.now()+'.png';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-
-/* ─── MOBILE SHARE VIEW ─── */
-const id=k=>document.getElementById(k);
-let _msvImgUrl = null;
-
-function initMobileShareView(imgUrl) {
-  _msvImgUrl = imgUrl;
-  // Apply language texts for mobile view
-  const isEs = currentLang === 'es';
-  const el = id => document.getElementById(id);
-  if(el('msv_title'))   el('msv_title').textContent   = isEs ? 'Horario Semanal' : 'Weekly Schedule';
-  if(el('msv_sub'))     el('msv_sub').textContent     = isEs ? 'Toca Compartir para enviarlo a tu grupo' : 'Tap Share to send to your group';
-  if(el('msv_share_lbl')) el('msv_share_lbl').textContent = isEs ? 'Compartir al Grupo' : 'Share to Group';
-  if(el('msv_save_lbl'))  el('msv_save_lbl').textContent  = isEs ? 'Guardar Imagen' : 'Save Image';
-  if(el('msv_hint')) el('msv_hint').textContent = isEs
-    ? 'Mantén presionada la imagen para guardarla, o usa los botones de abajo'
-    : 'Hold the image to save it, or use the buttons below';
-
-  // Load the image
-  const img = document.getElementById('msvImg');
-  img.onload = () => img.classList.remove('loading');
-  img.onerror = () => { img.classList.remove('loading'); img.alt = 'Error loading image'; };
-  img.src = imgUrl;
-
-  // Show the screen
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('langBtn').classList.remove('show');
-  showScreen('msvScreen');
-}
-
-async function msvShare() {
-  if (!_msvImgUrl) return;
-  const btn = document.getElementById('btnMsvShare');
-  const origText = btn.innerHTML;
-  btn.innerHTML = '⏳ ' + (currentLang==='es' ? 'Preparando...' : 'Preparing...');
-  btn.disabled = true;
-  try {
-    const resp = await fetch(_msvImgUrl);
-    const blob = await resp.blob();
-    const file = new File([blob], 'weekly-schedule.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: currentLang==='es' ? 'Horario Semanal' : 'Weekly Schedule',
-        files: [file]
-      });
-    } else if (navigator.share) {
-      await navigator.share({
-        title: currentLang==='es' ? 'Horario Semanal' : 'Weekly Schedule',
-        url: _msvImgUrl
-      });
-    } else {
-      window.open(_msvImgUrl, '_blank');
-    }
-  } catch(e) {
-    if (e.name !== 'AbortError') {
-      // Fallback: open image directly
-      window.open(_msvImgUrl, '_blank');
-    }
-  }
-  btn.innerHTML = origText;
-  btn.disabled = false;
-}
-
-async function msvSave() {
-  if (!_msvImgUrl) return;
-  const btn = document.getElementById('btnMsvSave');
-  const origText = btn.innerHTML;
-  btn.innerHTML = '⏳ ' + (currentLang==='es' ? 'Guardando...' : 'Saving...');
-  btn.disabled = true;
-  try {
-    const resp = await fetch(_msvImgUrl);
-    const blob = await resp.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = 'weekly-schedule.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  } catch(e) {
-    window.open(_msvImgUrl, '_blank');
-  }
-  btn.innerHTML = origText;
-  btn.disabled = false;
-}
-
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
-/* ─── NOTES RICH EDITOR ─── */
-function noteFmt(cmd){
-  document.getElementById('notesEditor').focus();
-  document.execCommand(cmd,false,null);
-  syncNotes();
-}
-
-function noteWrap(cls){
-  const editor=document.getElementById('notesEditor');
-  const sel=window.getSelection();
-  if(!sel||sel.rangeCount===0||sel.toString()===''||!editor.contains(sel.anchorNode)){
-    showToast(currentLang==='es'?'Selecciona texto primero.':'Select text first, then click.');
-    return;
-  }
-  try{
-    const range=sel.getRangeAt(0);
-    const span=document.createElement('span');
-    span.className=cls;
-    range.surroundContents(span);
-    sel.removeAllRanges();
-  }catch(e){ document.execCommand('bold',false,null); }
-  syncNotes();
-}
-
-function noteBadge(cls,label){
-  const editor=document.getElementById('notesEditor');
-  editor.focus();
-  const span=document.createElement('span');
-  span.className='note-badge '+cls;
-  span.contentEditable='false';
-  span.textContent=label;
-  const sel=window.getSelection();
-  if(sel&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
-    const range=sel.getRangeAt(0);
-    range.collapse(true);
-    range.insertNode(span);
-    range.setStartAfter(span);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  } else {
-    editor.appendChild(span);
-  }
-  syncNotes();
-}
-
-function clearNotes(){
-  const editor=document.getElementById('notesEditor');
-  if(editor) editor.innerHTML='';
-  syncNotes();
-}
-
-/* ─── QR / SEND TO PHONE ─── */
-let _schedBlob=null;
-
-async function openQRModal(){
-  const modal=document.getElementById('qrModal');
-  modal.classList.add('on');
-  const st=document.getElementById('qrStatus');
-  const prev=document.getElementById('qrPreview');
-  const wrap=document.getElementById('qrWrap');
-  const steps=document.getElementById('qrSteps');
-  const dlBtn=document.getElementById('btnDlImg');
-  const qrDiv=document.getElementById('qrCode');
-
-  st.className='qr-status';
-  st.textContent=currentLang==='es'?'Capturando el horario en alta calidad...':'Capturing schedule in high quality...';
-  prev.style.display='none';
-  wrap.style.display='none';
-  steps.style.display='none';
-  dlBtn.style.display='none';
-  qrDiv.innerHTML='';
-  _schedBlob=null;
-
-  const el=document.getElementById('schedWrap');
-  if(!el||el.style.display==='none'){
-    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture. Add employees first.';
-    st.className='qr-status err';
-    return;
-  }
-
-  try{
-    // 3.5x scale for near-4K quality with full colors
-    // Capture at the element's full natural width (like print landscape)
-    const canvas=await html2canvas(el,{
-      scale:3.5,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      allowTaint:true,
-      width:el.scrollWidth,
-      height:el.scrollHeight,
-      windowWidth:el.scrollWidth + 40,
-      scrollX:0,
-      scrollY:-window.scrollY
-    });
-    const dataUrl=canvas.toDataURL('image/png');
-    prev.src=dataUrl;
-    prev.style.display='block';
-    dlBtn.style.display='inline-flex';
-    st.textContent=currentLang==='es'?'Subiendo imagen...':'Uploading image...';
-
-    canvas.toBlob(async(blob)=>{
-      _schedBlob=blob;
-      const fname='sched_'+Date.now()+'.png';
-      const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
-
-      if(error){
-        st.textContent=(currentLang==='es'?'⚠️ Error al subir: ':'⚠️ Upload failed: ')+error.message+(currentLang==='es'?' — Usa el botón de descarga.':" — Use the Download button instead.");
-        st.className='qr-status err';
-        return;
-      }
-
-      const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
-      const imgUrl=ud.publicUrl;
-
-      // QR points to THIS page with ?imgurl= param so phone gets full share UI
-      const baseUrl=window.location.href.split('?')[0];
-      const shareUrl=baseUrl+'?imgurl='+encodeURIComponent(imgUrl);
-
-      qrDiv.innerHTML='';
-      new QRCode(qrDiv,{text:shareUrl,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-      wrap.style.display='flex';
-      steps.style.display='block';
-      st.textContent=currentLang==='es'?'✓ Listo — escanea el QR con tu teléfono':'✓ Ready — scan the QR with your phone camera';
-      st.className='qr-status ok';
-    },'image/png');
-
-  }catch(e){
+    if(document.body.contains(offscreen)) document.body.removeChild(offscreen);
     st.textContent='Error: '+e.message;
     st.className='qr-status err';
   }
@@ -571,18 +343,7 @@ async function openQRModal(){
   try{
     // 3.5x scale for near-4K quality with full colors
     // Capture at the element's full natural width (like print landscape)
-    const canvas=await html2canvas(el,{
-      scale:3.5,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      allowTaint:true,
-      width:el.scrollWidth,
-      height:el.scrollHeight,
-      windowWidth:el.scrollWidth + 40,
-      scrollX:0,
-      scrollY:-window.scrollY
-    });
+
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -2223,18 +1984,7 @@ async function openQRModal(){
   try{
     // 3.5x scale for near-4K quality with full colors
     // Capture at the element's full natural width (like print landscape)
-    const canvas=await html2canvas(el,{
-      scale:3.5,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      allowTaint:true,
-      width:el.scrollWidth,
-      height:el.scrollHeight,
-      windowWidth:el.scrollWidth + 40,
-      scrollX:0,
-      scrollY:-window.scrollY
-    });
+
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
