@@ -88,7 +88,19 @@ async function openQRModal(){
 
   try{
     // 3.5x scale for near-4K quality with full colors
-    const canvas=await html2canvas(el,{scale:3.5,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:true});
+    // Capture at the element's full natural width (like print landscape)
+    const canvas=await html2canvas(el,{
+      scale:3.5,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:true,
+      width:el.scrollWidth,
+      height:el.scrollHeight,
+      windowWidth:el.scrollWidth + 40,
+      scrollX:0,
+      scrollY:-window.scrollY
+    });
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -159,12 +171,9 @@ function initMobileShareView(imgUrl) {
   if(el('msv_sub'))     el('msv_sub').textContent     = isEs ? 'Toca Compartir para enviarlo a tu grupo' : 'Tap Share to send to your group';
   if(el('msv_share_lbl')) el('msv_share_lbl').textContent = isEs ? 'Compartir al Grupo' : 'Share to Group';
   if(el('msv_save_lbl'))  el('msv_save_lbl').textContent  = isEs ? 'Guardar Imagen' : 'Save Image';
-  if(el('msv_tip')) el('msv_tip').innerHTML = isEs
-    ? '<b>iOS:</b> Toca Compartir → Guardar Imagen o envía a Mensajes<br><b>Android:</b> Toca Compartir → elige tu app de mensajes'
-    : '<b>iOS:</b> Tap Share → Save Image or send to Messages<br><b>Android:</b> Tap Share → choose your messaging app';
   if(el('msv_hint')) el('msv_hint').textContent = isEs
-    ? 'O mantén presionada la imagen de arriba para guardarla'
-    : 'Or hold the image above to save it directly';
+    ? 'Mantén presionada la imagen para guardarla, o usa los botones de abajo'
+    : 'Hold the image to save it, or use the buttons below';
 
   // Load the image
   const img = document.getElementById('msvImg');
@@ -320,7 +329,19 @@ async function openQRModal(){
 
   try{
     // 3.5x scale for near-4K quality with full colors
-    const canvas=await html2canvas(el,{scale:3.5,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:true});
+    // Capture at the element's full natural width (like print landscape)
+    const canvas=await html2canvas(el,{
+      scale:3.5,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:true,
+      width:el.scrollWidth,
+      height:el.scrollHeight,
+      windowWidth:el.scrollWidth + 40,
+      scrollX:0,
+      scrollY:-window.scrollY
+    });
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -391,12 +412,9 @@ function initMobileShareView(imgUrl) {
   if(el('msv_sub'))     el('msv_sub').textContent     = isEs ? 'Toca Compartir para enviarlo a tu grupo' : 'Tap Share to send to your group';
   if(el('msv_share_lbl')) el('msv_share_lbl').textContent = isEs ? 'Compartir al Grupo' : 'Share to Group';
   if(el('msv_save_lbl'))  el('msv_save_lbl').textContent  = isEs ? 'Guardar Imagen' : 'Save Image';
-  if(el('msv_tip')) el('msv_tip').innerHTML = isEs
-    ? '<b>iOS:</b> Toca Compartir → Guardar Imagen o envía a Mensajes<br><b>Android:</b> Toca Compartir → elige tu app de mensajes'
-    : '<b>iOS:</b> Tap Share → Save Image or send to Messages<br><b>Android:</b> Tap Share → choose your messaging app';
   if(el('msv_hint')) el('msv_hint').textContent = isEs
-    ? 'O mantén presionada la imagen de arriba para guardarla'
-    : 'Or hold the image above to save it directly';
+    ? 'Mantén presionada la imagen para guardarla, o usa los botones de abajo'
+    : 'Hold the image to save it, or use the buttons below';
 
   // Load the image
   const img = document.getElementById('msvImg');
@@ -552,7 +570,19 @@ async function openQRModal(){
 
   try{
     // 3.5x scale for near-4K quality with full colors
-    const canvas=await html2canvas(el,{scale:3.5,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:true});
+    // Capture at the element's full natural width (like print landscape)
+    const canvas=await html2canvas(el,{
+      scale:3.5,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:true,
+      width:el.scrollWidth,
+      height:el.scrollHeight,
+      windowWidth:el.scrollWidth + 40,
+      scrollX:0,
+      scrollY:-window.scrollY
+    });
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -623,12 +653,9 @@ function initMobileShareView(imgUrl) {
   if(el('msv_sub'))     el('msv_sub').textContent     = isEs ? 'Toca Compartir para enviarlo a tu grupo' : 'Tap Share to send to your group';
   if(el('msv_share_lbl')) el('msv_share_lbl').textContent = isEs ? 'Compartir al Grupo' : 'Share to Group';
   if(el('msv_save_lbl'))  el('msv_save_lbl').textContent  = isEs ? 'Guardar Imagen' : 'Save Image';
-  if(el('msv_tip')) el('msv_tip').innerHTML = isEs
-    ? '<b>iOS:</b> Toca Compartir → Guardar Imagen o envía a Mensajes<br><b>Android:</b> Toca Compartir → elige tu app de mensajes'
-    : '<b>iOS:</b> Tap Share → Save Image or send to Messages<br><b>Android:</b> Tap Share → choose your messaging app';
   if(el('msv_hint')) el('msv_hint').textContent = isEs
-    ? 'O mantén presionada la imagen de arriba para guardarla'
-    : 'Or hold the image above to save it directly';
+    ? 'Mantén presionada la imagen para guardarla, o usa los botones de abajo'
+    : 'Hold the image to save it, or use the buttons below';
 
   // Load the image
   const img = document.getElementById('msvImg');
@@ -1021,7 +1048,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .msv-btn.share:hover,.msv-btn.share:active{background:#e6b200}
 .msv-btn.save{background:#008C15;color:#fff}
 .msv-btn.save:hover,.msv-btn.save:active{background:#006b10}
-.msv-tip{background:#1a1a1a;border-radius:8px;padding:11px 14px;color:#777;font-size:11px;line-height:1.7;text-align:center}
+
 .msv-tip b{color:#aaa}
 
 </style>
@@ -1047,11 +1074,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
     <button class="msv-btn save" id="btnMsvSave" onclick="msvSave()">
       ⬇️ <span id="msv_save_lbl">Save Image</span>
     </button>
-    <div class="msv-tip" id="msv_tip">
-      <b>iOS:</b> Tap Share → Save Image or send to Messages<br>
-      <b>Android:</b> Tap Share → choose your messaging app
-    </div>
-    <div class="msv-hint" id="msv_hint">Or hold the image above to save it directly</div>
+    <div class="msv-hint" id="msv_hint">Hold the image to save it, or use the buttons below</div>
   </div>
 </div>
 
@@ -2199,7 +2222,19 @@ async function openQRModal(){
 
   try{
     // 3.5x scale for near-4K quality with full colors
-    const canvas=await html2canvas(el,{scale:3.5,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:true});
+    // Capture at the element's full natural width (like print landscape)
+    const canvas=await html2canvas(el,{
+      scale:3.5,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:true,
+      width:el.scrollWidth,
+      height:el.scrollHeight,
+      windowWidth:el.scrollWidth + 40,
+      scrollX:0,
+      scrollY:-window.scrollY
+    });
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl;
     prev.style.display='block';
@@ -2270,12 +2305,9 @@ function initMobileShareView(imgUrl) {
   if(el('msv_sub'))     el('msv_sub').textContent     = isEs ? 'Toca Compartir para enviarlo a tu grupo' : 'Tap Share to send to your group';
   if(el('msv_share_lbl')) el('msv_share_lbl').textContent = isEs ? 'Compartir al Grupo' : 'Share to Group';
   if(el('msv_save_lbl'))  el('msv_save_lbl').textContent  = isEs ? 'Guardar Imagen' : 'Save Image';
-  if(el('msv_tip')) el('msv_tip').innerHTML = isEs
-    ? '<b>iOS:</b> Toca Compartir → Guardar Imagen o envía a Mensajes<br><b>Android:</b> Toca Compartir → elige tu app de mensajes'
-    : '<b>iOS:</b> Tap Share → Save Image or send to Messages<br><b>Android:</b> Tap Share → choose your messaging app';
   if(el('msv_hint')) el('msv_hint').textContent = isEs
-    ? 'O mantén presionada la imagen de arriba para guardarla'
-    : 'Or hold the image above to save it directly';
+    ? 'Mantén presionada la imagen para guardarla, o usa los botones de abajo'
+    : 'Hold the image to save it, or use the buttons below';
 
   // Load the image
   const img = document.getElementById('msvImg');
