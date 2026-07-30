@@ -4,7 +4,420 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Subway — Schedule Maker</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+/* ─── NOTES RICH EDITOR ─── */
+function noteFmt(cmd){
+  document.getElementById('notesEditor').focus();
+  document.execCommand(cmd,false,null);
+  syncNotes();
+}
+
+function noteWrap(cls){
+  const editor=document.getElementById('notesEditor');
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.toString()===''||!editor.contains(sel.anchorNode)){
+    showToast(currentLang==='es'?'Selecciona texto primero.':'Select text first, then click.');
+    return;
+  }
+  try{
+    const range=sel.getRangeAt(0);
+    const span=document.createElement('span');
+    span.className=cls;
+    range.surroundContents(span);
+    sel.removeAllRanges();
+  }catch(e){ document.execCommand('bold',false,null); }
+  syncNotes();
+}
+
+function noteBadge(cls,label){
+  const editor=document.getElementById('notesEditor');
+  editor.focus();
+  const span=document.createElement('span');
+  span.className='note-badge '+cls;
+  span.contentEditable='false';
+  span.textContent=label;
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
+    const range=sel.getRangeAt(0);
+    range.collapse(true);
+    range.insertNode(span);
+    range.setStartAfter(span);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(span);
+  }
+  syncNotes();
+}
+
+function clearNotes(){
+  const editor=document.getElementById('notesEditor');
+  if(editor) editor.innerHTML='';
+  syncNotes();
+}
+
+/* ─── QR / SEND TO PHONE ─── */
+let _schedBlob=null;
+
+async function openQRModal(){
+  const modal=document.getElementById('qrModal');
+  modal.classList.add('on');
+  const st=document.getElementById('qrStatus');
+  const prev=document.getElementById('qrPreview');
+  const wrap=document.getElementById('qrWrap');
+  const steps=document.getElementById('qrSteps');
+  const dlBtn=document.getElementById('btnDlImg');
+  const qrDiv=document.getElementById('qrCode');
+
+  st.className='qr-status';
+  st.textContent=currentLang==='es'?'Capturando el horario...':'Capturing schedule...';
+  prev.style.display='none';
+  wrap.style.display='none';
+  steps.style.display='none';
+  dlBtn.style.display='none';
+  qrDiv.innerHTML='';
+  _schedBlob=null;
+
+  const el=document.getElementById('schedWrap');
+  if(!el||el.style.display==='none'){
+    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture. Add employees first.';
+    st.className='qr-status err';
+    return;
+  }
+
+  try{
+    const canvas=await html2canvas(el,{scale:2.2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const dataUrl=canvas.toDataURL('image/png');
+    prev.src=dataUrl;
+    prev.style.display='block';
+    dlBtn.style.display='inline-flex';
+
+    canvas.toBlob(async(blob)=>{
+      _schedBlob=blob;
+      st.textContent=currentLang==='es'?'Subiendo imagen a la nube...':'Uploading image to cloud...';
+
+      const fname='sched_'+Date.now()+'.png';
+      const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
+
+      if(error){
+        st.textContent=(currentLang==='es'?'⚠️ No se pudo subir: ':'⚠️ Upload failed: ')+error.message+(currentLang==='es'?' — Descarga la imagen directamente arriba.':" — Use the download button instead.");
+        st.className='qr-status err';
+        return;
+      }
+
+      const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
+      const url=ud.publicUrl;
+
+      qrDiv.innerHTML='';
+      new QRCode(qrDiv,{text:url,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      wrap.style.display='flex';
+      steps.style.display='block';
+      st.textContent=currentLang==='es'?'✓ Listo — escanea el código QR con la cámara de tu teléfono':'✓ Ready — scan the QR code with your phone camera';
+      st.className='qr-status ok';
+    },'image/png');
+
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    st.className='qr-status err';
+  }
+}
+
+function closeQRModal(){
+  document.getElementById('qrModal').classList.remove('on');
+  document.getElementById('qrCode').innerHTML='';
+  _schedBlob=null;
+}
+
+function downloadSchedImg(){
+  if(!_schedBlob) return;
+  const url=URL.createObjectURL(_schedBlob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='schedule_'+Date.now()+'.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+/* ─── NOTES RICH EDITOR ─── */
+function noteFmt(cmd){
+  document.getElementById('notesEditor').focus();
+  document.execCommand(cmd,false,null);
+  syncNotes();
+}
+
+function noteWrap(cls){
+  const editor=document.getElementById('notesEditor');
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.toString()===''||!editor.contains(sel.anchorNode)){
+    showToast(currentLang==='es'?'Selecciona texto primero.':'Select text first, then click.');
+    return;
+  }
+  try{
+    const range=sel.getRangeAt(0);
+    const span=document.createElement('span');
+    span.className=cls;
+    range.surroundContents(span);
+    sel.removeAllRanges();
+  }catch(e){ document.execCommand('bold',false,null); }
+  syncNotes();
+}
+
+function noteBadge(cls,label){
+  const editor=document.getElementById('notesEditor');
+  editor.focus();
+  const span=document.createElement('span');
+  span.className='note-badge '+cls;
+  span.contentEditable='false';
+  span.textContent=label;
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
+    const range=sel.getRangeAt(0);
+    range.collapse(true);
+    range.insertNode(span);
+    range.setStartAfter(span);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(span);
+  }
+  syncNotes();
+}
+
+function clearNotes(){
+  const editor=document.getElementById('notesEditor');
+  if(editor) editor.innerHTML='';
+  syncNotes();
+}
+
+/* ─── QR / SEND TO PHONE ─── */
+let _schedBlob=null;
+
+async function openQRModal(){
+  const modal=document.getElementById('qrModal');
+  modal.classList.add('on');
+  const st=document.getElementById('qrStatus');
+  const prev=document.getElementById('qrPreview');
+  const wrap=document.getElementById('qrWrap');
+  const steps=document.getElementById('qrSteps');
+  const dlBtn=document.getElementById('btnDlImg');
+  const qrDiv=document.getElementById('qrCode');
+
+  st.className='qr-status';
+  st.textContent=currentLang==='es'?'Capturando el horario...':'Capturing schedule...';
+  prev.style.display='none';
+  wrap.style.display='none';
+  steps.style.display='none';
+  dlBtn.style.display='none';
+  qrDiv.innerHTML='';
+  _schedBlob=null;
+
+  const el=document.getElementById('schedWrap');
+  if(!el||el.style.display==='none'){
+    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture. Add employees first.';
+    st.className='qr-status err';
+    return;
+  }
+
+  try{
+    const canvas=await html2canvas(el,{scale:2.2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const dataUrl=canvas.toDataURL('image/png');
+    prev.src=dataUrl;
+    prev.style.display='block';
+    dlBtn.style.display='inline-flex';
+
+    canvas.toBlob(async(blob)=>{
+      _schedBlob=blob;
+      st.textContent=currentLang==='es'?'Subiendo imagen a la nube...':'Uploading image to cloud...';
+
+      const fname='sched_'+Date.now()+'.png';
+      const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
+
+      if(error){
+        st.textContent=(currentLang==='es'?'⚠️ No se pudo subir: ':'⚠️ Upload failed: ')+error.message+(currentLang==='es'?' — Descarga la imagen directamente arriba.':" — Use the download button instead.");
+        st.className='qr-status err';
+        return;
+      }
+
+      const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
+      const url=ud.publicUrl;
+
+      qrDiv.innerHTML='';
+      new QRCode(qrDiv,{text:url,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      wrap.style.display='flex';
+      steps.style.display='block';
+      st.textContent=currentLang==='es'?'✓ Listo — escanea el código QR con la cámara de tu teléfono':'✓ Ready — scan the QR code with your phone camera';
+      st.className='qr-status ok';
+    },'image/png');
+
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    st.className='qr-status err';
+  }
+}
+
+function closeQRModal(){
+  document.getElementById('qrModal').classList.remove('on');
+  document.getElementById('qrCode').innerHTML='';
+  _schedBlob=null;
+}
+
+function downloadSchedImg(){
+  if(!_schedBlob) return;
+  const url=URL.createObjectURL(_schedBlob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='schedule_'+Date.now()+'.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
+/* ─── NOTES RICH EDITOR ─── */
+function noteFmt(cmd){
+  document.getElementById('notesEditor').focus();
+  document.execCommand(cmd,false,null);
+  syncNotes();
+}
+
+function noteWrap(cls){
+  const editor=document.getElementById('notesEditor');
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.toString()===''||!editor.contains(sel.anchorNode)){
+    showToast(currentLang==='es'?'Selecciona texto primero.':'Select text first, then click.');
+    return;
+  }
+  try{
+    const range=sel.getRangeAt(0);
+    const span=document.createElement('span');
+    span.className=cls;
+    range.surroundContents(span);
+    sel.removeAllRanges();
+  }catch(e){ document.execCommand('bold',false,null); }
+  syncNotes();
+}
+
+function noteBadge(cls,label){
+  const editor=document.getElementById('notesEditor');
+  editor.focus();
+  const span=document.createElement('span');
+  span.className='note-badge '+cls;
+  span.contentEditable='false';
+  span.textContent=label;
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
+    const range=sel.getRangeAt(0);
+    range.collapse(true);
+    range.insertNode(span);
+    range.setStartAfter(span);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(span);
+  }
+  syncNotes();
+}
+
+function clearNotes(){
+  const editor=document.getElementById('notesEditor');
+  if(editor) editor.innerHTML='';
+  syncNotes();
+}
+
+/* ─── QR / SEND TO PHONE ─── */
+let _schedBlob=null;
+
+async function openQRModal(){
+  const modal=document.getElementById('qrModal');
+  modal.classList.add('on');
+  const st=document.getElementById('qrStatus');
+  const prev=document.getElementById('qrPreview');
+  const wrap=document.getElementById('qrWrap');
+  const steps=document.getElementById('qrSteps');
+  const dlBtn=document.getElementById('btnDlImg');
+  const qrDiv=document.getElementById('qrCode');
+
+  st.className='qr-status';
+  st.textContent=currentLang==='es'?'Capturando el horario...':'Capturing schedule...';
+  prev.style.display='none';
+  wrap.style.display='none';
+  steps.style.display='none';
+  dlBtn.style.display='none';
+  qrDiv.innerHTML='';
+  _schedBlob=null;
+
+  const el=document.getElementById('schedWrap');
+  if(!el||el.style.display==='none'){
+    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture. Add employees first.';
+    st.className='qr-status err';
+    return;
+  }
+
+  try{
+    const canvas=await html2canvas(el,{scale:2.2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const dataUrl=canvas.toDataURL('image/png');
+    prev.src=dataUrl;
+    prev.style.display='block';
+    dlBtn.style.display='inline-flex';
+
+    canvas.toBlob(async(blob)=>{
+      _schedBlob=blob;
+      st.textContent=currentLang==='es'?'Subiendo imagen a la nube...':'Uploading image to cloud...';
+
+      const fname='sched_'+Date.now()+'.png';
+      const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
+
+      if(error){
+        st.textContent=(currentLang==='es'?'⚠️ No se pudo subir: ':'⚠️ Upload failed: ')+error.message+(currentLang==='es'?' — Descarga la imagen directamente arriba.':" — Use the download button instead.");
+        st.className='qr-status err';
+        return;
+      }
+
+      const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
+      const url=ud.publicUrl;
+
+      qrDiv.innerHTML='';
+      new QRCode(qrDiv,{text:url,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      wrap.style.display='flex';
+      steps.style.display='block';
+      st.textContent=currentLang==='es'?'✓ Listo — escanea el código QR con la cámara de tu teléfono':'✓ Ready — scan the QR code with your phone camera';
+      st.className='qr-status ok';
+    },'image/png');
+
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    st.className='qr-status err';
+  }
+}
+
+function closeQRModal(){
+  document.getElementById('qrModal').classList.remove('on');
+  document.getElementById('qrCode').innerHTML='';
+  _schedBlob=null;
+}
+
+function downloadSchedImg(){
+  if(!_schedBlob) return;
+  const url=URL.createObjectURL(_schedBlob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='schedule_'+Date.now()+'.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#ebebeb;color:#222;min-height:100vh;overflow-x:hidden}
@@ -262,6 +675,52 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
   @page{size:landscape;margin:.5cm 1cm}
   html,body{margin:0 !important}
 }
+
+/* ── NOTES RICH EDITOR ── */
+.notes-tb{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.ntb{padding:4px 9px;border:1.5px solid #e0e0e0;border-radius:5px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;transition:all .15s;line-height:1}
+.ntb:hover{border-color:#008C15;background:#f0fff4}
+.notes-editor{min-height:88px;max-height:180px;overflow-y:auto;padding:9px 11px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:12px;line-height:1.65;background:#fafafa;outline:none;cursor:text;font-family:'Segoe UI',Arial,sans-serif}
+.notes-editor:focus{border-color:#008C15;background:#fff}
+.notes-editor:empty::before{content:attr(data-ph);color:#ccc;pointer-events:none}
+.hl-y{background:#FFF176;padding:1px 3px;border-radius:2px}
+.hl-r{background:#FFCDD2;color:#b71c1c;padding:1px 3px;border-radius:2px;font-weight:700}
+.hl-g{background:#C8E6C9;color:#1b5e20;padding:1px 3px;border-radius:2px}
+.txt-lg{font-size:15px;font-weight:800}
+.note-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-right:5px}
+.note-badge.nb-warn{background:#FFC600;color:#111}
+.note-badge.nb-imp{background:#cc2200;color:#fff}
+.note-badge.nb-info{background:#008C15;color:#fff}
+/* print notes with rich formatting */
+.pnotes-txt b{font-weight:800}
+.pnotes-txt .hl-y{background:#ffffaa !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pnotes-txt .hl-r{background:#ffcccc !important;color:#880000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-weight:700}
+.pnotes-txt .hl-g{background:#ccffcc !important;color:#004400 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pnotes-txt .txt-lg{font-size:15px;font-weight:800}
+.pnotes-txt .note-badge{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pnotes-txt .note-badge.nb-warn{background:#FFC600 !important;color:#111 !important}
+.pnotes-txt .note-badge.nb-imp{background:#cc2200 !important;color:#fff !important}
+.pnotes-txt .note-badge.nb-info{background:#008C15 !important;color:#fff !important}
+
+/* ── QR MODAL ── */
+#qrModal{position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#qrModal.on{display:flex}
+.qrpanel{background:#fff;border-radius:18px;width:500px;max-width:95vw;max-height:94vh;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:fUp .25s ease;display:flex;flex-direction:column}
+.qr-topbar{height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%);flex-shrink:0}
+.qr-head{background:#111;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.qr-head img{height:34px}
+.qr-head-t h3{color:#FFC600;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.qr-head-t p{color:#aaa;font-size:11px;margin-top:2px}
+.qr-body{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:14px;flex:1}
+.qr-status{font-size:13px;font-weight:600;color:#999;text-align:center}
+.qr-status.ok{color:#008C15}.qr-status.err{color:#cc2200}
+.qr-preview{width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid #eee;display:none}
+.qr-wrap{background:#fff;padding:14px;border-radius:12px;border:2.5px solid #FFC600;display:none;flex-direction:column;align-items:center;gap:8px}
+.qr-wrap p{font-size:11px;color:#888;text-align:center;max-width:200px}
+.qr-steps{background:#f8f8f8;border-radius:8px;padding:12px 15px;font-size:12px;color:#555;line-height:1.9;width:100%;display:none}
+.qr-steps b{color:#222}
+.qr-foot{padding:13px 22px 18px;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;border-top:1px solid #eee}
+.qr-botbar{height:4px;background:linear-gradient(90deg,#008C15 50%,#FFC600 50%);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -370,6 +829,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn bo bsm" onclick="goHome()">🏠 <span id="btn_home">Home</span></button>
       <button class="btn bo bsm" onclick="clearAll()">🗑 <span id="btn_clear">Clear All</span></button>
+      <button class="btn bg bsm" onclick="openQRModal()" id="btn_qr">📱 <span id="btn_qr_lbl">Send to Phone</span></button>
       <button class="btn by bsm" onclick="window.print()">🖨 <span id="btn_print">Print</span></button>
     </div>
   </div>
@@ -407,7 +867,21 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
             <option value="Warning">Warning</option><option value="Reminder">Reminder</option><option value="Important">Important</option>
           </select>
         </div>
-        <textarea id="schedNotes" class="nta" placeholder="e.g. Store closed Sunday..." oninput="syncNotes()"></textarea>
+        <div class="notes-tb">
+          <button class="ntb" style="font-weight:900" onclick="noteFmt('bold')" title="Bold">B</button>
+          <button class="ntb" style="font-style:italic" onclick="noteFmt('italic')" title="Italic">I</button>
+          <button class="ntb" style="background:#FFF176;border-color:#f0d800" onclick="noteWrap('hl-y')" title="Yellow highlight">🟡</button>
+          <button class="ntb" style="background:#FFCDD2;border-color:#ef9a9a" onclick="noteWrap('hl-r')" title="Red alert">🔴</button>
+          <button class="ntb" style="background:#C8E6C9;border-color:#81C784" onclick="noteWrap('hl-g')" title="Green">🟢</button>
+          <button class="ntb" onclick="noteWrap('txt-lg')" title="Big text" style="font-size:14px">A↑</button>
+          <button class="ntb" style="background:#FFF8DC;border-color:#FFC600;font-size:10px" onclick="noteBadge('nb-warn','⚠️ NOTICE')" title="Notice badge">⚠️</button>
+          <button class="ntb" style="background:#FFCDD2;border-color:#ef9a9a;font-size:10px" onclick="noteBadge('nb-imp','🚨 IMPORTANT')" title="Important badge">🚨</button>
+          <button class="ntb" style="background:#C8E6C9;border-color:#81C784;font-size:10px" onclick="noteBadge('nb-info','ℹ️ INFO')" title="Info badge">ℹ️</button>
+          <button class="ntb" style="color:#aaa;border-color:#ddd;margin-left:auto" onclick="clearNotes()" title="Clear all">✕</button>
+        </div>
+        <div id="notesEditor" class="notes-editor" contenteditable="true"
+          data-ph="e.g. Store closed Sunday. Team meeting Thursday 3pm..."
+          oninput="syncNotes()"></div>
       </div>
     </div>
     <div class="content">
@@ -579,6 +1053,41 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
     <div class="pan-head"><img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt=""><h3 id="userSchedsTitle">Schedules</h3></div>
     <div class="pan-body" id="userSchedsBody"><div class="empty">Loading...</div></div>
     <div class="pan-foot"><button class="btn bo bsm" onclick="closeOv('userSchedsOv')" id="btn_close2">Close</button></div>
+  </div>
+</div>
+
+
+<!-- QR MODAL -->
+<div id="qrModal">
+  <div class="qrpanel">
+    <div class="qr-topbar"></div>
+    <div class="qr-head">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+      <div class="qr-head-t">
+        <h3 id="qr_title">Send Schedule to Phone</h3>
+        <p id="qr_sub">Scan the QR code — image opens on your phone instantly</p>
+      </div>
+    </div>
+    <div class="qr-body">
+      <div class="qr-status" id="qrStatus">Preparing...</div>
+      <img id="qrPreview" class="qr-preview" alt="Schedule preview">
+      <div class="qr-wrap" id="qrWrap">
+        <div id="qrCode"></div>
+        <p id="qr_hint">Point your phone camera at this code</p>
+      </div>
+      <div class="qr-steps" id="qrSteps">
+        <b id="qr_steps_lbl">Steps:</b><br>
+        <span id="qr_step1">1. Scan the QR code with your phone camera</span><br>
+        <span id="qr_step2">2. The schedule image opens in your browser</span><br>
+        <span id="qr_step3">3. Hold the image → Save to camera roll</span><br>
+        <span id="qr_step4">4. Send it to your team group chat 🎉</span>
+      </div>
+    </div>
+    <div class="qr-foot">
+      <button class="btn bo bsm" id="btnDlImg" style="display:none" onclick="downloadSchedImg()">⬇ <span id="qr_dl_lbl">Download Image</span></button>
+      <button class="btn bo bsm" onclick="closeQRModal()" id="qr_close_lbl">Close</button>
+    </div>
+    <div class="qr-botbar"></div>
   </div>
 </div>
 
@@ -1042,7 +1551,7 @@ function loadStateIntoEditor(state){
   document.getElementById('managerName').value=state.managerName||'';
   document.getElementById('weekStart').value=state.weekStart||defWed();
   document.getElementById('notesTitle').value=state.notesTitle||'Notes';
-  document.getElementById('schedNotes').value=state.schedNotes||'';
+  const ne2=document.getElementById('notesEditor'); if(ne2) ne2.innerHTML=state.schedNotes||'';
   updateHeader(); updateDates(); renderEmpList(); renderTable(); syncNotes();
   setSave('idle',tr('saveTxt_idle'));
 }
@@ -1054,7 +1563,7 @@ function collectState(){
     managerName:document.getElementById('managerName').value,
     weekStart:document.getElementById('weekStart').value,
     notesTitle:document.getElementById('notesTitle').value,
-    schedNotes:document.getElementById('schedNotes').value,
+    schedNotes:(document.getElementById('notesEditor')?document.getElementById('notesEditor').innerHTML:''),
     employees,schedData,empCounter
   };
 }
@@ -1176,10 +1685,11 @@ function updateTotals(){
 }
 
 function syncNotes(){
-  const notes=document.getElementById('schedNotes').value.trim();
+  const el=document.getElementById('notesEditor');
+  const notes=el?el.innerHTML.trim():'';
   const title=document.getElementById('notesTitle').value;
   document.getElementById('printNotesLabel').textContent='📝 '+title;
-  document.getElementById('printNotesText').textContent=notes;
+  document.getElementById('printNotesText').innerHTML=notes;
   document.getElementById('printNotes').style.display=notes?'':'none';
   triggerSave();
 }
@@ -1265,6 +1775,143 @@ window.addEventListener('DOMContentLoaded',()=>{
     },480);
   },2400);
 });
+
+/* ─── NOTES RICH EDITOR ─── */
+function noteFmt(cmd){
+  document.getElementById('notesEditor').focus();
+  document.execCommand(cmd,false,null);
+  syncNotes();
+}
+
+function noteWrap(cls){
+  const editor=document.getElementById('notesEditor');
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.toString()===''||!editor.contains(sel.anchorNode)){
+    showToast(currentLang==='es'?'Selecciona texto primero.':'Select text first, then click.');
+    return;
+  }
+  try{
+    const range=sel.getRangeAt(0);
+    const span=document.createElement('span');
+    span.className=cls;
+    range.surroundContents(span);
+    sel.removeAllRanges();
+  }catch(e){ document.execCommand('bold',false,null); }
+  syncNotes();
+}
+
+function noteBadge(cls,label){
+  const editor=document.getElementById('notesEditor');
+  editor.focus();
+  const span=document.createElement('span');
+  span.className='note-badge '+cls;
+  span.contentEditable='false';
+  span.textContent=label;
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
+    const range=sel.getRangeAt(0);
+    range.collapse(true);
+    range.insertNode(span);
+    range.setStartAfter(span);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(span);
+  }
+  syncNotes();
+}
+
+function clearNotes(){
+  const editor=document.getElementById('notesEditor');
+  if(editor) editor.innerHTML='';
+  syncNotes();
+}
+
+/* ─── QR / SEND TO PHONE ─── */
+let _schedBlob=null;
+
+async function openQRModal(){
+  const modal=document.getElementById('qrModal');
+  modal.classList.add('on');
+  const st=document.getElementById('qrStatus');
+  const prev=document.getElementById('qrPreview');
+  const wrap=document.getElementById('qrWrap');
+  const steps=document.getElementById('qrSteps');
+  const dlBtn=document.getElementById('btnDlImg');
+  const qrDiv=document.getElementById('qrCode');
+
+  st.className='qr-status';
+  st.textContent=currentLang==='es'?'Capturando el horario...':'Capturing schedule...';
+  prev.style.display='none';
+  wrap.style.display='none';
+  steps.style.display='none';
+  dlBtn.style.display='none';
+  qrDiv.innerHTML='';
+  _schedBlob=null;
+
+  const el=document.getElementById('schedWrap');
+  if(!el||el.style.display==='none'){
+    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture. Add employees first.';
+    st.className='qr-status err';
+    return;
+  }
+
+  try{
+    const canvas=await html2canvas(el,{scale:2.2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const dataUrl=canvas.toDataURL('image/png');
+    prev.src=dataUrl;
+    prev.style.display='block';
+    dlBtn.style.display='inline-flex';
+
+    canvas.toBlob(async(blob)=>{
+      _schedBlob=blob;
+      st.textContent=currentLang==='es'?'Subiendo imagen a la nube...':'Uploading image to cloud...';
+
+      const fname='sched_'+Date.now()+'.png';
+      const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
+
+      if(error){
+        st.textContent=(currentLang==='es'?'⚠️ No se pudo subir: ':'⚠️ Upload failed: ')+error.message+(currentLang==='es'?' — Descarga la imagen directamente arriba.':" — Use the download button instead.");
+        st.className='qr-status err';
+        return;
+      }
+
+      const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
+      const url=ud.publicUrl;
+
+      qrDiv.innerHTML='';
+      new QRCode(qrDiv,{text:url,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      wrap.style.display='flex';
+      steps.style.display='block';
+      st.textContent=currentLang==='es'?'✓ Listo — escanea el código QR con la cámara de tu teléfono':'✓ Ready — scan the QR code with your phone camera';
+      st.className='qr-status ok';
+    },'image/png');
+
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    st.className='qr-status err';
+  }
+}
+
+function closeQRModal(){
+  document.getElementById('qrModal').classList.remove('on');
+  document.getElementById('qrCode').innerHTML='';
+  _schedBlob=null;
+}
+
+function downloadSchedImg(){
+  if(!_schedBlob) return;
+  const url=URL.createObjectURL(_schedBlob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='schedule_'+Date.now()+'.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 </script>
 </body>
 </html>
