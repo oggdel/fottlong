@@ -199,7 +199,8 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .sh-close{background:#fff0e6;color:#cc5522;border-color:#ffbb99 !important}
 .sh-mid{background:#e6f0ff;color:#3366cc;border-color:#99bbff !important}
 .sh-x{background:#f5f5f5;color:#ccc;border-color:#e5e5e5 !important;font-weight:700}
-.pnotes{display:none;padding:12px 17px;border-top:2px solid #eee;background:#fffdf0}
+.notes-live-preview{display:none !important}
+  .pnotes{display:none;padding:12px 17px;border-top:2px solid #eee;background:#fffdf0}
 .pnotes-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:4px}
 .pnotes-txt{font-size:12px;color:#333;line-height:1.6;white-space:pre-wrap}
 .totbar{display:flex;align-items:center;justify-content:space-around;background:#111;padding:11px 20px;border-top:3px solid #FFC600}
@@ -239,7 +240,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 @media print{
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   body{background:#fff !important}
-  #langBtnLogin,#langBtnDash,#langBtnAdmin,#langBtnEditor,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.totbar,.legbar,.toast,.ctx,.empty-st{display:none !important}
+  #langBtnLogin,#langBtnDash,#langBtnAdmin,#langBtnEditor,#notesLivePreview,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.totbar,.legbar,.toast,.ctx,.empty-st{display:none !important}
   #editorScreen{display:flex !important;position:static !important}
   .mwrap{display:block !important}
   .content{padding:0 !important}
@@ -1495,32 +1496,67 @@ function doUndo(){
   clearTimeout(_undoTimer);_undoHtml=null;
 }
 
-/* ─── BROADCAST ─── */
-let _bc=null,_bcastType='warn';
+/* ─── BROADCAST (DB polling — works without Realtime setup) ─── */
+let _bcastType='warn';
+let _lastMsgId=null;
+let _pollTimer=null;
+
 function initBroadcastChannel(){
-  _bc=sb.channel('sw-broadcast')
-    .on('broadcast',{event:'admin_msg'},(payload)=>{
-      const d=payload.payload;
-      if(d.type==='warn'){document.getElementById('warnBannerText').textContent=d.text;document.getElementById('warnBanner').classList.add('show');}
-      else{document.getElementById('loveBannerText').textContent=d.text;document.getElementById('loveBanner').classList.add('show');}
-    }).subscribe();
+  // Poll for new messages every 10 seconds
+  _pollTimer=setInterval(pollMessages, 10000);
+  pollMessages(); // check immediately on load
 }
+
+async function pollMessages(){
+  try{
+    const {data}=await sb.from('sw_messages')
+      .select('*')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at',{ascending:false})
+      .limit(1);
+    if(!data||!data.length) return;
+    const msg=data[0];
+    if(msg.id===_lastMsgId) return; // already shown
+    _lastMsgId=msg.id;
+    const bannerId=msg.type==='warn'?'warnBanner':'loveBanner';
+    const textId=msg.type==='warn'?'warnBannerText':'loveBannerText';
+    document.getElementById(textId).textContent=msg.text;
+    document.getElementById(bannerId).classList.add('show');
+  }catch(e){ /* ignore poll errors silently */ }
+}
+
 function closeBanner(id){document.getElementById(id).classList.remove('show');}
+
 function selectBcastType(t){
   _bcastType=t;
   document.getElementById('bcastWarnBtn').classList.toggle('active',t==='warn');
   document.getElementById('bcastLoveBtn').classList.toggle('active',t==='love');
 }
+
 async function sendBroadcast(){
   const text=document.getElementById('bcastText').value.trim();
   const errEl=document.getElementById('bcastErr');
   errEl.textContent='';
   if(!text){errEl.textContent=currentLang==='es'?'Escribe un mensaje.':'Type a message.';return;}
-  if(!_bc){errEl.textContent='Not connected to broadcast channel.';return;}
-  await _bc.send({type:'broadcast',event:'admin_msg',payload:{type:_bcastType,text}});
-  document.getElementById('bcastText').value='';
-  closeOverlay('broadcastModal');
-  showToast(currentLang==='es'?'Mensaje enviado a todos ✓':'Message sent to everyone ✓');
+  try{
+    const {error}=await sb.from('sw_messages').insert({
+      type:_bcastType,
+      text,
+      expires_at:new Date(Date.now()+2*3600000).toISOString()
+    });
+    if(error) throw error;
+    document.getElementById('bcastText').value='';
+    closeOverlay('broadcastModal');
+    showToast(currentLang==='es'?'Mensaje enviado a todos ✓':'Message sent to everyone ✓');
+    // Show locally too
+    const bannerId=_bcastType==='warn'?'warnBanner':'loveBanner';
+    const textId=_bcastType==='warn'?'warnBannerText':'loveBannerText';
+    document.getElementById(textId).textContent=text;
+    document.getElementById(bannerId).classList.add('show');
+    _lastMsgId=null; // force re-check on next poll
+  }catch(e){
+    errEl.textContent='Error: '+e.message;
+  }
 }
 
 /* ─── NEW ADMIN PANEL ─── */
