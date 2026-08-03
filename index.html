@@ -239,7 +239,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 @media print{
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   body{background:#fff !important}
-  #langBtn,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.totbar,.legbar,.toast,.ctx,.empty-st{display:none !important}
+  #langBtnLogin,#langBtnDash,#langBtnAdmin,#langBtnEditor,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.totbar,.legbar,.toast,.ctx,.empty-st{display:none !important}
   #editorScreen{display:flex !important;position:static !important}
   .mwrap{display:block !important}
   .content{padding:0 !important}
@@ -265,9 +265,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
   html,body{margin:0 !important}
 }
 
-#langBtn{position:fixed;bottom:18px;left:18px;z-index:9990;background:#111;color:#FFC600;border:1.5px solid #FFC600;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s;display:none;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-#langBtn.show{display:flex}
-#langBtn:hover{background:#FFC600;color:#111}
+
 .broadcast-banner{position:fixed;top:0;left:0;right:0;z-index:99990;padding:13px 22px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;transform:translateY(-110%);transition:transform .35s ease}
 .broadcast-banner.show{transform:translateY(0)}
 .broadcast-banner.warn{background:linear-gradient(90deg,#cc2200,#ff5500);color:#fff;box-shadow:0 3px 18px rgba(204,34,0,.35)}
@@ -380,8 +378,6 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 </head>
 <body>
 
-<button id="langBtn" onclick="toggleLang()">🌐 ES</button>
-
 <!-- SPLASH -->
 <div id="splash">
   <div class="sp-bar"></div><div class="sp-bar b"></div>
@@ -408,6 +404,9 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
       <button class="lbtn" id="lbtn" onclick="doLogin()">Log In</button>
     </div>
     <div class="botbar2"></div>
+    <div style="text-align:center;padding:8px 0 4px">
+      <button id="langBtnLogin" onclick="toggleLang()" style="background:none;border:1px solid #ddd;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:#aaa;cursor:pointer">🌐 EN / ES</button>
+    </div>
   </div>
 </div>
 
@@ -421,6 +420,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
         <div style="font-size:10px;color:#666;letter-spacing:.3px" id="ucEmail"></div>
       </div>
       <span class="uc-role" id="ucRole"></span>
+      <button id="langBtnDash" onclick="toggleLang()" style="background:transparent;border:1px solid #555;border-radius:20px;padding:6px 13px;font-size:11px;font-weight:700;color:#FFC600;cursor:pointer">🌐 EN/ES</button>
       <button class="btn bo bsm" id="btn_logout" onclick="doLogout()">🔒 Log Out</button>
     </div>
   </div>
@@ -463,6 +463,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
     <div class="adm-tb-actions">
       <button class="btn bo bsm" id="btn_bcast" onclick="openOverlay('broadcastModal')" style="color:#FFC600;border-color:#FFC600">📢 <span id="bc_send_lbl">Send Message</span></button>
       <button class="btn bg bsm" onclick="openCreateUser()">➕ <span id="btn_newuser">New User</span></button>
+      <button id="langBtnAdmin" onclick="toggleLang()" style="background:transparent;border:1px solid #555;border-radius:20px;padding:6px 13px;font-size:11px;font-weight:700;color:#FFC600;cursor:pointer">🌐 EN/ES</button>
       <button class="btn bo bsm" onclick="showDash()">← <span id="btn_back">Back</span></button>
     </div>
   </div>
@@ -489,6 +490,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
       <div class="save-ind" id="saveInd"><div class="dot"></div><span id="saveTxt">No changes</span></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
+      <button id="langBtnEditor" onclick="toggleLang()" style="background:transparent;border:1px solid #555;border-radius:20px;padding:6px 13px;font-size:11px;font-weight:700;color:#FFC600;cursor:pointer">🌐 EN/ES</button>
       <button class="btn bo bsm" onclick="goHome()">🏠 <span id="btn_home">Home</span></button>
       <button class="btn bo bsm" onclick="clearAll()">🗑 <span id="btn_clear">Clear All</span></button>
       <button class="btn bg bsm" onclick="openQRModal()">📱 <span id="btn_qr_lbl">Send to Phone</span></button>
@@ -888,7 +890,7 @@ function tr(k){ return (L[currentLang]&&L[currentLang][k]) || L.en[k] || k; }
 
 function applyLang(l){
   currentLang=l; localStorage.setItem('sw_lang',l);
-  document.getElementById('langBtn').textContent = l==='en'?'🌐 ES':'🌐 EN';
+  ['langBtnLogin','langBtnDash','langBtnAdmin','langBtnEditor'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='🌐 '+(l==='en'?'ES':'EN'); });
   Object.keys(L.en).forEach(k=>{
     const el=document.getElementById(k);
     if(el){ if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.placeholder=tr(k); else el.innerHTML=tr(k); }
@@ -943,7 +945,6 @@ function showScreen(id){
     const el=document.getElementById(s); if(el){el.classList.remove('on');}
   });
   const screenEl=document.getElementById(id); if(screenEl) screenEl.classList.add('on');
-  document.getElementById('langBtn').classList.add('show');
 }
 
 function showDash(){
@@ -1527,7 +1528,6 @@ let _allUsers=[],_schedCounts={},_realtimeSched=null,_selectedUserId=null;
 
 async function openAdmin(){
   showScreen('adminScreen');
-  document.getElementById('langBtn').classList.add('show');
   applyLang(currentLang);
   await loadAdminUsers();
 }
@@ -1616,7 +1616,7 @@ async function adminOpenSched(id){
   if(error||!data){showToast('Error loading');return;}
   currentSchedId=id;const state=data.data||{};state.title=data.title;
   loadStateIntoEditor(state);showScreen('editorScreen');
-  document.getElementById('langBtn').classList.add('show');applyLang(currentLang);
+  applyLang(currentLang);
 }
 function adminWatchLive(id,title,btn){
   if(_realtimeSched){_realtimeSched.unsubscribe();_realtimeSched=null;btn.innerHTML='👁 Live';btn.className='btn by bsm';showToast('Live view off.');return;}
