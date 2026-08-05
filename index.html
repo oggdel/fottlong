@@ -375,6 +375,36 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .undo-toast.on{opacity:1;transform:translateY(0);pointer-events:auto}
 .undo-btn{background:#FFC600;color:#111;border:none;padding:4px 11px;border-radius:5px;font-size:12px;font-weight:800;cursor:pointer}
 
+
+/* ── MY SCHEDULES FULL OVERLAY ── */
+.my-scheds-overlay{position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+.my-scheds-overlay.on{display:flex}
+.my-scheds-panel{background:#f0f2f5;border-radius:18px;width:860px;max-width:96vw;min-height:400px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.3);display:flex;flex-direction:column}
+.msp-head{background:#111;padding:0 26px;height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #FFC600;flex-shrink:0}
+.msp-head-l{display:flex;align-items:center;gap:14px}
+.msp-head-l img{height:40px}
+.msp-head-title{display:flex;flex-direction:column}
+.msp-head-title .t1{color:#FFC600;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.msp-head-title .t2{color:#888;font-size:10px;margin-top:1px}
+.msp-sort-bar{padding:14px 22px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.msp-sort-bar label{font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.msp-sort-select{padding:6px 12px;border:1.5px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;outline:none;background:#fff;cursor:pointer}
+.msp-sort-select:focus{border-color:#008C15}
+.msp-grid{padding:0 20px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;overflow-y:auto;max-height:55vh}
+.msp-empty{text-align:center;padding:50px 20px;color:#bbb;grid-column:1/-1}
+.msp-empty .me-icon{font-size:44px;margin-bottom:10px}
+.msp-empty p{font-size:14px}
+.ms-card{background:#fff;border-radius:13px;padding:18px 18px 14px;box-shadow:0 2px 12px rgba(0,0,0,.07);border:2px solid transparent;transition:all .18s;display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.ms-card:hover{border-color:#008C15;box-shadow:0 6px 22px rgba(0,0,0,.12);transform:translateY(-2px)}
+.ms-card-icon{font-size:28px;margin-bottom:2px}
+.ms-card-title{font-size:15px;font-weight:800;color:#1a1a1a;line-height:1.3}
+.ms-card-dates{display:flex;flex-direction:column;gap:3px}
+.ms-card-date{font-size:10.5px;color:#aaa;display:flex;align-items:center;gap:5px}
+.ms-card-date b{color:#666}
+.ms-card-emp{display:inline-flex;align-items:center;gap:5px;background:#e0f5e0;color:#2a8a2a;border:1px solid #a3d9a3;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700}
+.ms-card-actions{display:flex;gap:8px;margin-top:4px}
+.msp-head-r{display:flex;gap:9px;align-items:center}
+
 </style>
 </head>
 <body>
@@ -610,15 +640,6 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
   </div>
 </div>
 
-<!-- MODAL: MY SCHEDULES -->
-<div class="ov" id="mySchedsOv">
-  <div class="pan" style="width:460px">
-    <div class="pan-bar"></div>
-    <div class="pan-head"><img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt=""><h3 id="mo_my">My Schedules</h3></div>
-    <div class="pan-body" id="mySchedsBody"><div class="empty">Loading...</div></div>
-    <div class="pan-foot"><button class="btn bo bsm" onclick="closeOv('mySchedsOv')" id="btn_close">Close</button></div>
-  </div>
-</div>
 
 <!-- MODAL: PROFILE -->
 <div class="ov" id="profileOv">
@@ -774,6 +795,40 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 </div>
 <!-- UNDO TOAST -->
 <div class="undo-toast" id="undoToast"><span id="undoToastMsg">Cleared</span><button class="undo-btn" onclick="doUndo()">↩ Undo</button></div>
+
+
+<!-- MY SCHEDULES OVERLAY — redesigned -->
+<div class="my-scheds-overlay" id="mySchedsOverlay">
+  <div class="my-scheds-panel">
+    <div class="msp-head">
+      <div class="msp-head-l">
+        <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+        <div class="msp-head-title">
+          <span class="t1" id="msp_title">My Schedules</span>
+          <span class="t2" id="msp_sub">All your weekly schedules</span>
+        </div>
+      </div>
+      <div class="msp-head-r">
+        <button class="btn bg bsm" onclick="closeMyScheds();openTitlePrompt()">➕ <span id="msp_new">New Schedule</span></button>
+        <button class="btn bo bsm" onclick="closeMyScheds()" id="msp_close">✕ Close</button>
+      </div>
+    </div>
+    <div class="msp-sort-bar">
+      <span id="msp_count" style="font-size:12px;color:#aaa;font-weight:600"></span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label id="msp_sort_lbl">Sort by</label>
+        <select class="msp-sort-select" id="mspSortSelect" onchange="sortAndRenderMyScheds()">
+          <option value="updated">Last Updated</option>
+          <option value="created">Date Created</option>
+          <option value="name">Name A–Z</option>
+        </select>
+      </div>
+    </div>
+    <div class="msp-grid" id="mspGrid">
+      <div class="msp-empty"><div class="me-icon">📋</div><p id="msp_loading">Loading...</p></div>
+    </div>
+  </div>
+</div>
 
 <!-- CONTEXT MENU -->
 <div class="ctx" id="ctxMenu">
@@ -1013,7 +1068,7 @@ async function saveProfile(){
 /* ─── ADMIN ─── */
 
 
-async function loadUsers(){
+async function loadAdminUsers(){
   const listEl=document.getElementById('usersList');
   listEl.innerHTML='<div class="empty">'+tr('loading')+'</div>';
   const {data:users,error}=await sb.from('sw_users').select('*').order('created_at');
@@ -1081,7 +1136,7 @@ async function createUser(){
   if(error){ errEl.textContent='Error: '+error.message; return; }
   closeOv('createUserOv');
   showToast((currentLang==='es'?'Usuario ':'User ')+username+(currentLang==='es'?' creado ✓':' created ✓'));
-  loadUsers();
+  loadAdminUsers();
 }
 
 function openEditUser(u){
@@ -1114,7 +1169,7 @@ async function saveEditUser(){
   if(editingUserId===session.id){ session.firstName=fn; session.lastName=ln; session.role=role; sessionStorage.setItem('sw_session',JSON.stringify(session)); }
   closeOv('editUserOv');
   showToast(currentLang==='es'?'Usuario actualizado ✓':'User updated ✓');
-  loadUsers();
+  loadAdminUsers();
 }
 
 async function openUserScheds(userId,userName){
@@ -1156,13 +1211,118 @@ async function createSched(){
   showToast((currentLang==='es'?'Horario "':'Schedule "')+title+(currentLang==='es'?'" creado ✓':'" created ✓'));
 }
 
+let _myScheds=[];
 async function openMyScheds(){
-  openOv('mySchedsOv');
-  const body=document.getElementById('mySchedsBody');
-  body.innerHTML='<div class="empty">'+tr('loading')+'</div>';
-  const {data,error}=await sb.from('sw_schedules').select('id,title,created_at,updated_at').eq('user_id',session.id).order('updated_at',{ascending:false});
-  if(error){ body.innerHTML='<div class="empty">Error: '+error.message+'</div>'; return; }
-  renderSchedList(body,data||[],false);
+  document.getElementById('mySchedsOverlay').classList.add('on');
+  const grid=document.getElementById('mspGrid');
+  grid.innerHTML='<div class="msp-empty"><div class="me-icon">⏳</div><p>'+(currentLang==='es'?'Cargando...':'Loading...')+'</p></div>';
+  document.getElementById('msp_count').textContent='';
+  const {data,error}=await sb.from('sw_schedules')
+    .select('id,title,created_at,updated_at,data')
+    .eq('user_id',session.id)
+    .order('updated_at',{ascending:false});
+  if(error){ grid.innerHTML='<div class="msp-empty"><p style="color:#cc2200">Error: '+error.message+'</p></div>'; return; }
+  _myScheds=data||[];
+  sortAndRenderMyScheds();
+}
+
+function closeMyScheds(){
+  document.getElementById('mySchedsOverlay').classList.remove('on');
+}
+
+function sortAndRenderMyScheds(){
+  const sort=document.getElementById('mspSortSelect').value;
+  let list=[..._myScheds];
+  if(sort==='updated') list.sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
+  else if(sort==='created') list.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  else if(sort==='name') list.sort((a,b)=>a.title.localeCompare(b.title));
+  renderMySched(list);
+}
+
+function renderMySched(list){
+  const grid=document.getElementById('mspGrid');
+  const countEl=document.getElementById('msp_count');
+  const isEs=currentLang==='es';
+  countEl.textContent=list.length+' '+(isEs?'horario(s)':'schedule(s)');
+  grid.innerHTML='';
+  if(!list.length){
+    const empty=document.createElement('div');
+    empty.className='msp-empty';
+    empty.innerHTML='<div class="me-icon">📋</div>';
+    const p=document.createElement('p');
+    p.textContent=isEs?'Aún no tienes horarios. ¡Crea uno!':'No schedules yet. Create your first one!';
+    empty.appendChild(p); grid.appendChild(empty); return;
+  }
+  list.forEach(item=>{
+    const d=item.data||{};
+    const empCount=(d.employees||[]).length;
+    const updated=new Date(item.updated_at||item.created_at);
+    const created=new Date(item.created_at);
+    const diffMs=Date.now()-updated.getTime();
+    const diffH=Math.round(diffMs/3600000);
+    const agoStr=diffH<1?(isEs?'Hace menos de 1h':'< 1 hour ago'):diffH<24?(isEs?'Hace '+diffH+'h':diffH+'h ago'):(isEs?'Hace '+Math.round(diffH/24)+'d':Math.round(diffH/24)+'d ago');
+
+    const card=document.createElement('div');
+    card.className='ms-card';
+
+    const icon=document.createElement('div'); icon.className='ms-card-icon'; icon.textContent='📅';
+    const title=document.createElement('div'); title.className='ms-card-title'; title.textContent=item.title;
+
+    const dates=document.createElement('div'); dates.className='ms-card-dates';
+    const d1=document.createElement('div'); d1.className='ms-card-date';
+    d1.innerHTML='🕐 <b>'+(isEs?'Actualizado:':'Updated:')+'</b> '+agoStr;
+    const d2=document.createElement('div'); d2.className='ms-card-date';
+    d2.innerHTML='📆 <b>'+(isEs?'Creado:':'Created:')+'</b> '+created.toLocaleDateString();
+    dates.appendChild(d1); dates.appendChild(d2);
+
+    card.appendChild(icon); card.appendChild(title); card.appendChild(dates);
+
+    if(empCount>0){
+      const empDiv=document.createElement('div');
+      const empSpan=document.createElement('span'); empSpan.className='ms-card-emp';
+      empSpan.textContent='👥 '+empCount+' '+(isEs?'empleados':'employees');
+      empDiv.appendChild(empSpan); card.appendChild(empDiv);
+    }
+
+    const acts=document.createElement('div'); acts.className='ms-card-actions';
+    const openBtn=document.createElement('button'); openBtn.className='btn bg bsm'; openBtn.style.flex='1';
+    openBtn.textContent='📂 '+(isEs?'Abrir':'Open');
+    openBtn.addEventListener('click',()=>openMySchedById(item.id));
+    const delBtn=document.createElement('button'); delBtn.className='btn bo bsm'; delBtn.style.color='#cc2200';
+    delBtn.textContent='🗑'; delBtn.title='Delete';
+    delBtn.addEventListener('click',()=>deleteMySchedById(item.id,item.title));
+    acts.appendChild(openBtn); acts.appendChild(delBtn);
+    card.appendChild(acts);
+    grid.appendChild(card);
+  });
+}
+
+async function openMySchedById(id){
+  showToast(currentLang==='es'?'Cargando...':'Loading...');
+  const {data,error}=await sb.from('sw_schedules').select('*').eq('id',id).single();
+  if(error||!data){showToast('Error loading');return;}
+  currentSchedId=id;
+  const state=data.data||{};state.title=data.title;
+  loadStateIntoEditor(state);
+  closeMyScheds();
+  showScreen('editorScreen');
+  document.querySelectorAll('[id^=langBtn]').forEach(el=>el&&el.classList&&el.classList.add&&el.classList.add('show'));
+  applyLang(currentLang);
+  showToast('"'+data.title+'" '+(currentLang==='es'?'cargado ✓':'loaded ✓'));
+}
+
+async function deleteMySchedById(id,title){
+  swConfirm({icon:'🗑️',badge:currentLang==='es'?'Eliminar Horario':'Delete Schedule',
+    msg:(currentLang==='es'?'¿Eliminar "':'Delete "')+title+'"?',
+    sub:currentLang==='es'?'Esta acción no se puede deshacer.':'This cannot be undone.',
+    okLabel:currentLang==='es'?'Sí, Eliminar':'Yes, Delete',okColor:'#cc2200',
+    onOk:async()=>{
+      await sb.from('sw_schedules').delete().eq('id',id);
+      _myScheds=_myScheds.filter(s=>s.id!==id);
+      sortAndRenderMyScheds();
+      showToast(currentLang==='es'?'Horario eliminado.':'Schedule deleted.');
+    }
+  });
 }
 
 function renderSchedList(container,list,isAdmin){
