@@ -451,6 +451,20 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .lv-last-update{font-size:10px;color:#555;letter-spacing:.3px}
 .lv-status-bar{background:#111;padding:8px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-top:1px solid #222}
 
+
+/* ── ADMIN EDIT NOTIFICATION BANNER ── */
+#adminEditBanner{position:fixed;top:0;left:0;right:0;z-index:99991;padding:13px 22px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;transform:translateY(-110%);transition:transform .35s ease;background:linear-gradient(90deg,#1a237e,#283593);color:#fff;box-shadow:0 3px 18px rgba(26,35,126,.4)}
+#adminEditBanner.show{transform:translateY(0)}
+#adminEditBanner .bb-icon{font-size:20px;flex-shrink:0}
+#adminEditBanner .bb-text{flex:1;line-height:1.4}
+#adminEditBanner .bb-text small{display:block;font-size:11px;font-weight:400;opacity:.75;margin-top:2px}
+#adminEditBanner .bb-close{background:rgba(255,255,255,.22);border:none;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;flex-shrink:0}
+#adminEditBanner .bb-close:hover{background:rgba(255,255,255,.38)}
+/* ── EDITOR admin-editing indicator ── */
+.admin-editing-bar{background:linear-gradient(90deg,#1a237e,#283593);color:#fff;padding:6px 18px;font-size:11px;font-weight:700;letter-spacing:.5px;display:none;align-items:center;gap:8px;flex-shrink:0}
+.admin-editing-bar.show{display:flex}
+.admin-editing-bar .aeb-dot{width:7px;height:7px;border-radius:50%;background:#90caf9;animation:pulse .9s infinite}
+
 </style>
 </head>
 <body>
@@ -564,7 +578,8 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
       <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:48px">
       <div class="tb-div"></div>
       <span class="tb-sub" id="etb_sub">Schedule Maker</span>
-      <div class="save-ind" id="saveInd"><div class="dot"></div><span id="saveTxt">No changes</span></div>
+      <div class="admin-editing-bar" id="adminEditingBar"><div class="aeb-dot"></div><span id="adminEditingBarText"></span></div>
+    <div class="save-ind" id="saveInd"><div class="dot"></div><span id="saveTxt">No changes</span></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button id="langBtnEditor" onclick="toggleLang()" style="background:transparent;border:1px solid #555;border-radius:20px;padding:6px 13px;font-size:11px;font-weight:700;color:#FFC600;cursor:pointer">🌐 EN/ES</button>
@@ -784,6 +799,17 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
   </div>
 </div>
 
+
+
+<!-- ADMIN EDIT NOTIFICATION BANNER (shown to the user whose schedule is being edited) -->
+<div id="adminEditBanner">
+  <span class="bb-icon">👀</span>
+  <div class="bb-text">
+    <span id="adminEditBannerText">Admin is editing your schedule</span>
+    <small id="adminEditBannerSub"></small>
+  </div>
+  <button class="bb-close" onclick="document.getElementById('adminEditBanner').classList.remove('show')">✕</button>
+</div>
 
 <!-- BROADCAST BANNERS -->
 <div id="warnBanner" class="broadcast-banner warn">
@@ -1093,7 +1119,14 @@ function showDash(){
   applyLang(currentLang);
 }
 
-function goHome(){ currentSchedId=null; showDash(); }
+function goHome(){
+  currentSchedId=null;
+  _editingForUserId=null;
+  _editingSchedTitle='';
+  const bar=document.getElementById('adminEditingBar');
+  if(bar) bar.classList.remove('show');
+  showDash();
+}
 
 /* ─── OVERLAYS ─── */
 function openOv(id){ document.getElementById(id).classList.add('on'); }
@@ -1809,21 +1842,47 @@ function initBroadcastChannel(){
   pollMessages(); // check immediately on load
 }
 
+let _lastAdminEditMsgId=null;
+
 async function pollMessages(){
   try{
     const {data}=await sb.from('sw_messages')
       .select('*')
       .gt('expires_at', new Date().toISOString())
       .order('created_at',{ascending:false})
-      .limit(1);
+      .limit(10);
     if(!data||!data.length) return;
-    const msg=data[0];
-    if(msg.id===_lastMsgId) return; // already shown
-    _lastMsgId=msg.id;
-    const bannerId=msg.type==='warn'?'warnBanner':'loveBanner';
-    const textId=msg.type==='warn'?'warnBannerText':'loveBannerText';
-    document.getElementById(textId).textContent=msg.text;
-    document.getElementById(bannerId).classList.add('show');
+    // Handle regular broadcast (warn/love)
+    const broadcastMsg=data.find(m=>m.type==='warn'||m.type==='love');
+    if(broadcastMsg&&broadcastMsg.id!==_lastMsgId){
+      _lastMsgId=broadcastMsg.id;
+      const bannerId=broadcastMsg.type==='warn'?'warnBanner':'loveBanner';
+      const textId=broadcastMsg.type==='warn'?'warnBannerText':'loveBannerText';
+      document.getElementById(textId).textContent=broadcastMsg.text;
+      document.getElementById(bannerId).classList.add('show');
+    }
+    // Handle admin edit notification (only show to the targeted user)
+    if(session){
+      const adminEditMsg=data.find(m=>{
+        if(m.type!=='admin_edit') return false;
+        try{ return JSON.parse(m.text).targetUserId===session.id; }catch(e){ return false; }
+      });
+      if(adminEditMsg&&adminEditMsg.id!==_lastAdminEditMsgId){
+        _lastAdminEditMsgId=adminEditMsg.id;
+        try{
+          const d=JSON.parse(adminEditMsg.text);
+          const isEs=currentLang==='es';
+          const banner=document.getElementById('adminEditBanner');
+          const txt=document.getElementById('adminEditBannerText');
+          const sub=document.getElementById('adminEditBannerSub');
+          if(banner&&txt){
+            txt.textContent=isEs?'El admin está editando tu horario':'Admin is editing your schedule';
+            if(sub) sub.textContent=(isEs?'Horario: ':'Schedule: ')+(d.schedTitle||'')+(d.adminName?' · '+(isEs?'Editado por: ':'Edited by: ')+d.adminName:'');
+            banner.classList.add('show');
+          }
+        }catch(e){}
+      }
+    }
   }catch(e){ /* ignore poll errors silently */ }
 }
 
@@ -1948,13 +2007,45 @@ function renderAdminSchedsGrid(container,list){
     container.appendChild(card);
   });
 }
+let _editingForUserId=null;
+let _editingSchedTitle='';
+
 async function adminOpenSched(id){
   showToast(currentLang==='es'?'Cargando...':'Loading...');
   const {data,error}=await sb.from('sw_schedules').select('*').eq('id',id).single();
   if(error||!data){showToast('Error loading');return;}
-  currentSchedId=id;const state=data.data||{};state.title=data.title;
-  loadStateIntoEditor(state);showScreen('editorScreen');
+  currentSchedId=id;
+  _editingForUserId=data.user_id;
+  _editingSchedTitle=data.title;
+  // Notify the owner only if it's not the admin's own schedule
+  if(session && data.user_id!==session.id){
+    notifyUserAdminEditing(data.user_id, data.title);
+    const bar=document.getElementById('adminEditingBar');
+    const barTxt=document.getElementById('adminEditingBarText');
+    if(bar&&barTxt){
+      barTxt.textContent=(currentLang==='es'?'Editando horario de otro usuario: ':'Editing user schedule: ')+data.title;
+      bar.classList.add('show');
+    }
+  }
+  const state=data.data||{}; state.title=data.title;
+  loadStateIntoEditor(state);
+  showScreen('editorScreen');
+  document.querySelectorAll('[id^=langBtn]').forEach(el=>el&&el.classList&&el.classList.add('show'));
   applyLang(currentLang);
+}
+
+async function notifyUserAdminEditing(targetUserId, schedTitle){
+  try{
+    await sb.from('sw_messages').insert({
+      type:'admin_edit',
+      text:JSON.stringify({
+        targetUserId,
+        schedTitle,
+        adminName:(session.firstName||session.username||'Admin'),
+      }),
+      expires_at:new Date(Date.now()+2*3600000).toISOString()
+    });
+  }catch(e){ console.warn('Could not send admin edit notification:',e); }
 }
 function deleteUserFromEdit(){
   const name=document.getElementById('eu_user').value||'this user';
