@@ -422,6 +422,35 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .add-mgr-btn{width:100%;padding:8px;margin-top:6px;background:#fafaf5;border:1.5px dashed #FFC600;border-radius:7px;font-size:12px;font-weight:700;color:#b38600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:inherit}
 .add-mgr-btn:hover{background:#FFC600;color:#111;border-style:solid}
 
+
+/* ── LIVE VIEW SCREEN ── */
+#liveViewScreen{background:#1a1a1a;flex-direction:column;z-index:9500;overflow:hidden}
+.lv-head{background:#111;padding:0 22px;height:68px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #cc2200;flex-shrink:0}
+.lv-head-l{display:flex;align-items:center;gap:14px}
+.lv-head-l img{height:38px}
+.lv-who{display:flex;flex-direction:column}
+.lv-who .lw1{color:#fff;font-size:13px;font-weight:800;letter-spacing:.5px}
+.lv-who .lw2{color:#888;font-size:10px;margin-top:1px;letter-spacing:.5px}
+.lv-badge{display:flex;align-items:center;gap:7px;background:#cc2200;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.lv-dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:liveDot 1.2s ease-in-out infinite}
+@keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.lv-head-r{display:flex;gap:9px;align-items:center}
+.lv-content{flex:1;overflow:auto;padding:18px;background:#1a1a1a;display:flex;align-items:flex-start;justify-content:center}
+.lv-table-wrap{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,.5);min-width:820px;width:100%}
+.lv-updated-flash{animation:cellFlash .8s ease}
+@keyframes cellFlash{0%{background:#FFF176}50%{background:#FFF9C4}100%{}}
+.lv-readonly td{cursor:default !important}
+.lv-readonly .lv-cell{padding:8px 6px;text-align:center;font-size:13px;font-weight:600;border-radius:4px;min-height:32px;display:flex;align-items:center;justify-content:center;color:#444;transition:background .3s}
+.lv-cell.sh-open{background:#e6f7e6;color:#2a882a}
+.lv-cell.sh-off{background:#f4f4f4;color:#aaa}
+.lv-cell.sh-close{background:#fff0e6;color:#cc5522}
+.lv-cell.sh-mid{background:#e6f0ff;color:#3366cc}
+.lv-cell.sh-training{background:#fff8e1;color:#cc9900}
+.lv-cell.sh-x{background:#f5f5f5;color:#ccc}
+.lv-cell.sh-empty{color:#ccc;font-size:11px}
+.lv-last-update{font-size:10px;color:#555;letter-spacing:.3px}
+.lv-status-bar{background:#111;padding:8px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-top:1px solid #222}
+
 </style>
 </head>
 <body>
@@ -848,6 +877,34 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
   </div>
 </div>
 
+
+<!-- LIVE VIEW SCREEN (admin read-only live watch) -->
+<div id="liveViewScreen" class="screen">
+  <div class="lv-head">
+    <div class="lv-head-l">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway">
+      <div class="lv-who">
+        <span class="lw1" id="lvWhoName">Watching schedule</span>
+        <span class="lw2" id="lvWhoSub">Read-only live view — changes appear automatically</span>
+      </div>
+    </div>
+    <div class="lv-head-r">
+      <span class="lv-badge"><span class="lv-dot"></span><span id="lv_live_lbl">LIVE</span></span>
+      <button class="btn by bsm" onclick="lvOpenForEdit()" id="lv_edit_btn">✏️ Open to Edit</button>
+      <button class="btn bo bsm" onclick="closeLiveView()" id="lv_close_btn">✕ Close</button>
+    </div>
+  </div>
+  <div class="lv-content">
+    <div class="lv-table-wrap" id="lvTableWrap">
+      <div style="padding:60px;text-align:center;color:#999">Loading...</div>
+    </div>
+  </div>
+  <div class="lv-status-bar">
+    <span class="lv-last-update" id="lvLastUpdate">Connecting...</span>
+    <span class="lv-last-update" id="lvUpdateCount" style="color:#444"></span>
+  </div>
+</div>
+
 <!-- CONTEXT MENU -->
 <div class="ctx" id="ctxMenu">
   <div class="cxh" id="ctx_hd">Set Shift</div>
@@ -1018,7 +1075,7 @@ function doLogout(){
 
 /* ─── SCREENS ─── */
 function showScreen(id){
-  ['loginScreen','dashScreen','adminScreen','editorScreen','msvScreen'].forEach(s=>{
+  ['loginScreen','dashScreen','adminScreen','editorScreen','msvScreen','liveViewScreen'].forEach(s=>{
     const el=document.getElementById(s); if(el){el.classList.remove('on');}
   });
   const screenEl=document.getElementById(id); if(screenEl) screenEl.classList.add('on');
@@ -1925,15 +1982,192 @@ function deleteUserFromEdit(){
   });
 }
 
+let _lvSchedId=null;
+let _lvSchedData=null;
+let _lvUpdateCount=0;
+let _lvWatchBtn=null;
+
 function adminWatchLive(id,title,btn){
-  if(_realtimeSched){_realtimeSched.unsubscribe();_realtimeSched=null;btn.innerHTML='👁 Live';btn.className='btn by bsm';showToast('Live view off.');return;}
-  adminOpenSched(id);btn.innerHTML='🔴 LIVE';btn.className='btn br bsm';
+  // If already watching this same schedule, stop
+  if(_realtimeSched && _lvSchedId===id){
+    closeLiveView();
+    return;
+  }
+  // If watching a different schedule, stop old one first
+  if(_realtimeSched){ _realtimeSched.unsubscribe(); _realtimeSched=null; }
+  if(_lvWatchBtn){ _lvWatchBtn.innerHTML='👁 Live'; _lvWatchBtn.className='btn by bsm'; }
+  _lvWatchBtn=btn;
+  _lvSchedId=id;
+  _lvUpdateCount=0;
+  btn.innerHTML='🔴 LIVE';
+  btn.className='btn br bsm';
+  // Set up live view screen
+  document.getElementById('lvWhoName').textContent=title;
+  document.getElementById('lvWhoSub').textContent=currentLang==='es'?'Vista en vivo — solo lectura':'Read-only live view — updates automatically';
+  document.getElementById('lvLastUpdate').textContent=currentLang==='es'?'Conectando...':'Connecting...';
+  document.getElementById('lvUpdateCount').textContent='';
+  showScreen('liveViewScreen');
+  document.querySelectorAll('[id^=langBtn]').forEach(el=>el&&el.classList&&el.classList.add('show'));
+  // Load current state immediately
+  sb.from('sw_schedules').select('*').eq('id',id).single().then(({data,error})=>{
+    if(error||!data){ document.getElementById('lvTableWrap').innerHTML='<div style="padding:40px;text-align:center;color:#cc2200">Error loading schedule</div>'; return; }
+    _lvSchedData={...(data.data||{}),title:data.title};
+    renderLiveView(_lvSchedData);
+    const now=new Date();
+    document.getElementById('lvLastUpdate').textContent=(currentLang==='es'?'Última actualización: ':'Last updated: ')+now.toLocaleTimeString();
+  });
+  // Subscribe to real-time changes
   _realtimeSched=sb.channel('live-'+id)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'sw_schedules',filter:'id=eq.'+id},(payload)=>{
-      if(!payload.new)return;
-      const s=payload.new.data||{};s.title=payload.new.title;loadStateIntoEditor(s);showToast('🔴 Updated live');
-    }).subscribe();
+      if(!payload.new) return;
+      const newData={...(payload.new.data||{}),title:payload.new.title};
+      _lvUpdateCount++;
+      updateLiveViewDiff(_lvSchedData,newData);
+      _lvSchedData=newData;
+      const now=new Date();
+      document.getElementById('lvLastUpdate').textContent=(currentLang==='es'?'Actualizado: ':'Updated: ')+now.toLocaleTimeString();
+      document.getElementById('lvUpdateCount').textContent=_lvUpdateCount+' '+(currentLang==='es'?'cambio(s) detectado(s)':'change(s) detected');
+    })
+    .subscribe((status)=>{
+      if(status==='SUBSCRIBED'){
+        document.getElementById('lvLastUpdate').textContent=currentLang==='es'?'Conectado — esperando cambios...':'Connected — waiting for changes...';
+      }
+    });
 }
+
+function closeLiveView(){
+  if(_realtimeSched){ _realtimeSched.unsubscribe(); _realtimeSched=null; }
+  if(_lvWatchBtn){ _lvWatchBtn.innerHTML='👁 Live'; _lvWatchBtn.className='btn by bsm'; _lvWatchBtn=null; }
+  _lvSchedId=null; _lvSchedData=null;
+  showScreen('adminScreen');
+  document.querySelectorAll('[id^=langBtn]').forEach(el=>el&&el.classList&&el.classList.add('show'));
+}
+
+function lvOpenForEdit(){
+  if(!_lvSchedId) return;
+  // Stop live before opening editor (admin explicitly chose to edit)
+  if(_realtimeSched){ _realtimeSched.unsubscribe(); _realtimeSched=null; }
+  if(_lvWatchBtn){ _lvWatchBtn.innerHTML='👁 Live'; _lvWatchBtn.className='btn by bsm'; _lvWatchBtn=null; }
+  adminOpenSched(_lvSchedId);
+  _lvSchedId=null; _lvSchedData=null;
+}
+
+/* Render the full live view table (first load) */
+function renderLiveView(state){
+  const DAYS_N=DAYS_I18N||{en:['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'],es:['Miércoles','Jueves','Viernes','Sábado','Domingo','Lunes','Martes']};
+  const dayNames=DAYS_N[currentLang]||DAYS_N.en;
+  const emps=state.employees||[];
+  const sdata=state.schedData||{};
+  const ws=state.weekStart;
+  const rl=ROLES[currentLang]||ROLES.en;
+  let dates=Array(7).fill('');
+  if(ws){
+    const base=new Date(ws+'T00:00:00');
+    dates=Array.from({length:7},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return (d.getMonth()+1)+'/'+d.getDate();});
+  }
+  // Build header
+  const wrap=document.getElementById('lvTableWrap');
+  // Schedule header
+  let html='<div style="background:#111;display:flex;align-items:stretch">';
+  html+='<div style="background:#FFC600;width:8px;flex-shrink:0"></div>';
+  html+='<div style="background:#008C15;width:8px;flex-shrink:0"></div>';
+  html+='<div style="flex:1;padding:13px 18px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div><div style="font-size:16px;font-weight:900;color:#FFC600;letter-spacing:1px;text-transform:uppercase">'+(state.title||'Weekly Schedule')+'</div>';
+  html+='<div style="font-size:11px;color:#aaa;margin-top:2px">'+(ws?'Week of: '+dates[0]+' – '+dates[6]:'')+'</div></div>';
+  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:40px">';
+  html+='<div style="text-align:right"><div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:1px">'+(currentLang==='es'?'Gerente':'Manager')+'</div>';
+  html+='<div style="font-size:14px;font-weight:700;color:#fff;margin-top:2px">'+(state.managerName||'—')+'</div>';
+  html+='<div style="font-size:11px;color:#aaa;margin-top:1px">'+(state.storeName||'')+'</div></div>';
+  html+='</div></div>';
+  // Table
+  html+='<div style="overflow-x:auto"><table class="st lv-readonly" style="width:100%;border-collapse:collapse;font-size:13px">';
+  html+='<thead><tr style="background:#008C15"><th style="text-align:left;padding-left:13px;width:140px;background:#006b10;color:#fff;font-size:11px;padding:10px 6px 10px 13px;text-transform:uppercase;letter-spacing:1px">Employee</th>';
+  dayNames.forEach((day,i)=>{
+    html+='<th style="color:#fff;padding:10px 6px;text-align:center;font-size:12px;border-right:1px solid rgba(255,255,255,.12);text-transform:uppercase">';
+    html+='<span style="display:block;font-size:13px;font-weight:800">'+day+'</span>';
+    html+='<span style="display:block;font-size:10px;opacity:.85;margin-top:1px">'+dates[i]+'</span></th>';
+  });
+  html+='</tr></thead><tbody>';
+  emps.forEach((emp,ri)=>{
+    const isEven=ri%2===0;
+    const isMgr=emp.isManagerRow;
+    const rowBg=isEven?'#fafffe':'#fff';
+    html+='<tr style="background:'+rowBg+';border-bottom:1px solid #e8e8e8">';
+    const nameBg=isMgr?'#fafdf8':'#f8fdf8';
+    const nameBorder=isMgr?'4px solid #FFC600':'2px solid #d4ead4';
+    html+='<td style="text-align:left;padding:9px 6px 9px 12px;background:'+nameBg+';border-right:'+nameBorder+'" id="lv-name-'+emp.id+'">';
+    html+='<div style="font-size:13px;font-weight:700;color:#'+(isMgr?'111':'222')+'">'+emp.name+'</div>';
+    html+='<div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-top:1px">'+(isMgr?'<span style="color:#b38600;font-weight:700">MANAGER</span>':(rl[emp.role]||emp.role))+'</div>';
+    html+='</td>';
+    for(let di=0;di<7;di++){
+      const key=emp.id+'_'+di;
+      const val=sdata[key]||'';
+      const cls=lvShiftClass(val);
+      html+='<td style="padding:6px;text-align:center;border-right:1px solid #eee;vertical-align:middle" id="lv-cell-'+key+'">';
+      html+='<div class="lv-cell '+cls+'">'+(val||'<span style="color:#ddd;font-size:10px">—</span>')+'</div></td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  // Notes
+  const notes=state.schedNotes;
+  if(notes){
+    html+='<div style="padding:12px 17px;border-top:2px solid #eee;background:#fffdf0">';
+    html+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#999;font-weight:700;margin-bottom:4px">📝 '+(state.notesTitle||'Notes')+'</div>';
+    html+='<div style="font-size:12px;color:#333;line-height:1.6">'+notes+'</div></div>';
+  }
+  wrap.innerHTML=html;
+}
+
+/* Smart diff — only update cells that changed, with flash animation */
+function updateLiveViewDiff(oldState,newState){
+  const oldData=oldState.schedData||{};
+  const newData=newState.schedData||{};
+  const oldEmps=oldState.employees||[];
+  const newEmps=newState.employees||[];
+  // If employees changed, re-render everything
+  if(JSON.stringify(oldEmps)!==JSON.stringify(newEmps)||
+     oldState.title!==newState.title||
+     oldState.weekStart!==newState.weekStart||
+     oldState.managerName!==newState.managerName||
+     oldState.storeName!==newState.storeName){
+    renderLiveView(newState);
+    return;
+  }
+  // Only update cells that changed
+  let changed=0;
+  newEmps.forEach(emp=>{
+    for(let di=0;di<7;di++){
+      const key=emp.id+'_'+di;
+      const oldVal=oldData[key]||'';
+      const newVal=newData[key]||'';
+      if(oldVal!==newVal){
+        changed++;
+        const cell=document.getElementById('lv-cell-'+key);
+        if(cell){
+          const cls=lvShiftClass(newVal);
+          cell.innerHTML='<div class="lv-cell '+cls+' lv-updated-flash">'+(newVal||'<span style="color:#ddd;font-size:10px">—</span>')+'</div>';
+        }
+      }
+    }
+  });
+  // Update notes if changed
+  if((oldState.schedNotes||'')!==(newState.schedNotes||'')||oldState.notesTitle!==newState.notesTitle){
+    renderLiveView(newState); // easier to just re-render for notes change
+  }
+}
+
+function lvShiftClass(v){
+  if(!v) return 'sh-empty';
+  const l=v.toLowerCase().trim();
+  if(l==='off') return 'sh-off';
+  if(l==='x') return 'sh-x';
+  if(l==='training') return 'sh-training';
+  if(l.includes('close')) return 'sh-close';
+  if(l==='open'||l.startsWith('open')) return 'sh-open';
+  return 'sh-mid';
+}
+
 function adminDeleteSched(id,title,cardEl){
   swConfirm({icon:'🗑️',badge:currentLang==='es'?'Eliminar':'Delete',
     msg:(currentLang==='es'?'¿Eliminar "':'Delete "')+title+'"?',
