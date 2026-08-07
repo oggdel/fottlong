@@ -415,11 +415,11 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .echip-edit-btn:hover{opacity:1 !important;color:#008C15}
 .echip-save-btn{background:#008C15;border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;flex-shrink:0}
 /* ── MANAGER ROW in table ── */
-.mgr-row-namecell{background:linear-gradient(90deg,#FFF8DC,#fafdf8) !important;border-right:3px solid #FFC600 !important}
-.mgr-badge{display:inline-flex;align-items:center;gap:4px;background:#FFC600;color:#111;font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.mgr-row-emp{font-size:14px;font-weight:900;color:#111}
+.mgr-row-namecell{background:#fafdf8 !important;border-left:4px solid #FFC600;padding-left:10px !important}
+.mgr-badge{font-size:9px;color:#b38600;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-top:1px;display:block}
+.mgr-row-emp{font-size:13px;font-weight:700;color:#222}
 /* ── ADD MANAGER ROW BUTTON ── */
-.add-mgr-btn{width:100%;padding:8px;margin-top:6px;background:linear-gradient(90deg,#FFF8DC,#fffcf0);border:1.5px dashed #FFC600;border-radius:7px;font-size:12px;font-weight:700;color:#b38600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;font-family:inherit}
+.add-mgr-btn{width:100%;padding:8px;margin-top:6px;background:#fafaf5;border:1.5px dashed #FFC600;border-radius:7px;font-size:12px;font-weight:700;color:#b38600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:inherit}
 .add-mgr-btn:hover{background:#FFC600;color:#111;border-style:solid}
 
 </style>
@@ -566,7 +566,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
             <option value="training">In Training</option>
           </select>
           <button class="btn bg" style="width:100%;justify-content:center;padding:9px" onclick="addEmp()" id="btn_addemp">+ Add Employee</button>
-        <button class="add-mgr-btn" onclick="addManagerRow()" id="btn_addmgr" title="Add a manager tasks row">⭐ Add My Row (Manager)</button>
+        <button class="add-mgr-btn" onclick="addManagerRow()" id="btn_addmgr" title="Add a special row for manager tasks">+ Add Special Row</button>
         </div>
       </div>
       <hr class="dv">
@@ -1507,7 +1507,7 @@ function renderEmpList(){
     const cr=document.createElement('div'); cr.className='ecr';
     const rb=document.createElement('span');
     rb.className='rbdg '+(emp.isManagerRow?'rb-manager':'rb-'+emp.role);
-    rb.textContent=emp.isManagerRow?'⭐ MGR':(rl[emp.role]||emp.role);
+    rb.textContent=emp.isManagerRow?'MGR':(rl[emp.role]||emp.role);
     const del=document.createElement('button'); del.className='edel'; del.textContent='×';
     del.addEventListener('click',()=>removeEmp(emp.id));
     cr.appendChild(rb); cr.appendChild(del);
@@ -1558,7 +1558,7 @@ function renderTable(){
     ns.textContent=emp.name;
     ns.className=emp.isManagerRow?'mgr-row-emp':'';
     const rs=document.createElement('span'); rs.className='erl';
-    if(emp.isManagerRow){ rs.innerHTML='<span class="mgr-badge">⭐ Manager</span>'; }
+    if(emp.isManagerRow){ rs.innerHTML='<span class="mgr-badge">MANAGER</span>'; }
     else { rs.textContent=rl[emp.role]||emp.role; }
     nw.appendChild(ns); nw.appendChild(rs); ntd.appendChild(nw); tr.appendChild(ntd);
     for(let di=0;di<ND;di++){
@@ -2021,22 +2021,42 @@ async function msvSave(){
 }
 
 function addManagerRow(){
-  const mgrName=document.getElementById('managerName').value.trim();
-  if(!mgrName){
-    showToast(currentLang==='es'?'Primero escribe el nombre del gerente en la configuración.':'First enter the Manager Name in settings.');
-    document.getElementById('managerName').focus();
-    return;
-  }
-  // Check if manager row already exists
   const existing=employees.find(e=>e.isManagerRow);
   if(existing){
-    showToast(currentLang==='es'?'Ya existe una fila de gerente.':'A manager row already exists.');
+    showToast(currentLang==='es'?'Ya existe una fila de gerente. Edita el nombre con el lápiz.':'A manager row already exists. Edit the name with the pencil icon.');
     return;
   }
-  employees.push({id:empCounter++, name:mgrName, role:'manager', isManagerRow:true});
-  renderEmpList(); renderTable();
-  showToast((currentLang==='es'?'Fila de gerente agregada para ':'Manager row added for ')+mgrName+' ✓');
-  triggerSave();
+  // Show a small inline prompt for the row label
+  const btn=document.getElementById('btn_addmgr');
+  if(!btn) return;
+  const defaultName=document.getElementById('managerName').value.trim()||'Manager Tasks';
+  // Replace button temporarily with an inline input
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:6px;align-items:center;margin-top:6px';
+  const inp=document.createElement('input');
+  inp.type='text'; inp.value=defaultName; inp.maxLength=30;
+  inp.placeholder=currentLang==='es'?'Nombre de la fila...':'Row label...';
+  inp.style.cssText='flex:1;padding:7px 10px;border:1.5px solid #FFC600;border-radius:6px;font-size:12px;font-family:inherit;outline:none';
+  const okBtn=document.createElement('button');
+  okBtn.textContent='✓'; okBtn.className='btn bg bsm';
+  const cancelBtn=document.createElement('button');
+  cancelBtn.textContent='✕'; cancelBtn.className='btn bo bsm';
+  wrap.appendChild(inp); wrap.appendChild(okBtn); wrap.appendChild(cancelBtn);
+  btn.replaceWith(wrap);
+  inp.focus(); inp.select();
+  const confirm=()=>{
+    const label=inp.value.trim();
+    if(!label){ wrap.replaceWith(btn); return; }
+    employees.push({id:empCounter++, name:label, role:'manager', isManagerRow:true});
+    wrap.replaceWith(btn);
+    renderEmpList(); renderTable();
+    showToast((currentLang==='es'?'Fila agregada: ':'Row added: ')+label+' ✓');
+    triggerSave();
+  };
+  const cancel=()=>{ wrap.replaceWith(btn); };
+  okBtn.addEventListener('click',confirm);
+  cancelBtn.addEventListener('click',cancel);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') confirm(); if(e.key==='Escape') cancel(); });
 }
 
 </script>
