@@ -2009,13 +2009,22 @@ function adminWatchLive(id,title,btn){
   showScreen('liveViewScreen');
   document.querySelectorAll('[id^=langBtn]').forEach(el=>el&&el.classList&&el.classList.add('show'));
   // Load current state immediately
-  sb.from('sw_schedules').select('*').eq('id',id).single().then(({data,error})=>{
-    if(error||!data){ document.getElementById('lvTableWrap').innerHTML='<div style="padding:40px;text-align:center;color:#cc2200">Error loading schedule</div>'; return; }
-    _lvSchedData={...(data.data||{}),title:data.title};
-    renderLiveView(_lvSchedData);
-    const now=new Date();
-    document.getElementById('lvLastUpdate').textContent=(currentLang==='es'?'Última actualización: ':'Last updated: ')+now.toLocaleTimeString();
-  });
+  (async()=>{
+    try{
+      const {data,error}=await sb.from('sw_schedules').select('*').eq('id',id).single();
+      if(error||!data){
+        document.getElementById('lvTableWrap').innerHTML='<div style="padding:40px;text-align:center;color:#cc2200">Error: '+(error?.message||'Schedule not found')+'</div>';
+        return;
+      }
+      _lvSchedData={...(data.data||{}),title:data.title};
+      try{ renderLiveView(_lvSchedData); }catch(e){ console.error('renderLiveView error:',e); document.getElementById('lvTableWrap').innerHTML='<div style="padding:40px;text-align:center;color:#cc2200">Render error: '+e.message+'</div>'; return; }
+      const now=new Date();
+      document.getElementById('lvLastUpdate').textContent=(currentLang==='es'?'Última actualización: ':'Last updated: ')+now.toLocaleTimeString();
+    }catch(e){
+      console.error('LiveView load error:',e);
+      document.getElementById('lvTableWrap').innerHTML='<div style="padding:40px;text-align:center;color:#cc2200">Error: '+e.message+'</div>';
+    }
+  })();
   // Subscribe to real-time changes
   _realtimeSched=sb.channel('live-'+id)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'sw_schedules',filter:'id=eq.'+id},(payload)=>{
@@ -2054,7 +2063,7 @@ function lvOpenForEdit(){
 
 /* Render the full live view table (first load) */
 function renderLiveView(state){
-  const DAYS_N=DAYS_I18N||{en:['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'],es:['Miércoles','Jueves','Viernes','Sábado','Domingo','Lunes','Martes']};
+  const DAYS_N=DAYS||{en:['Wednesday','Thursday','Friday','Saturday','Sunday','Monday','Tuesday'],es:['Miércoles','Jueves','Viernes','Sábado','Domingo','Lunes','Martes']};
   const dayNames=DAYS_N[currentLang]||DAYS_N.en;
   const emps=state.employees||[];
   const sdata=state.schedData||{};
@@ -2131,7 +2140,7 @@ function updateLiveViewDiff(oldState,newState){
      oldState.weekStart!==newState.weekStart||
      oldState.managerName!==newState.managerName||
      oldState.storeName!==newState.storeName){
-    renderLiveView(newState);
+    try{renderLiveView(newState);}catch(e){console.error(e);}
     return;
   }
   // Only update cells that changed
@@ -2153,7 +2162,7 @@ function updateLiveViewDiff(oldState,newState){
   });
   // Update notes if changed
   if((oldState.schedNotes||'')!==(newState.schedNotes||'')||oldState.notesTitle!==newState.notesTitle){
-    renderLiveView(newState); // easier to just re-render for notes change
+    try{renderLiveView(newState);}catch(e){console.error(e);} // re-render for notes change
   }
 }
 
