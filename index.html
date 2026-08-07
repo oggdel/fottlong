@@ -405,6 +405,23 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .ms-card-actions{display:flex;gap:8px;margin-top:4px}
 .msp-head-r{display:flex;gap:9px;align-items:center}
 
+
+/* ── EMPLOYEE NAME EDIT ── */
+.echip{position:relative}
+.echip-edit-mode{background:#fff;border-color:#008C15 !important}
+.echip-name-input{border:none;outline:none;font-size:13px;font-weight:600;font-family:inherit;background:transparent;width:100%;min-width:0;color:#222}
+.echip-edit-btn{background:none;border:none;cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s;padding:2px 4px;color:#666;flex-shrink:0}
+.echip:hover .echip-edit-btn{opacity:.6}
+.echip-edit-btn:hover{opacity:1 !important;color:#008C15}
+.echip-save-btn{background:#008C15;border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;flex-shrink:0}
+/* ── MANAGER ROW in table ── */
+.mgr-row-namecell{background:linear-gradient(90deg,#FFF8DC,#fafdf8) !important;border-right:3px solid #FFC600 !important}
+.mgr-badge{display:inline-flex;align-items:center;gap:4px;background:#FFC600;color:#111;font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.mgr-row-emp{font-size:14px;font-weight:900;color:#111}
+/* ── ADD MANAGER ROW BUTTON ── */
+.add-mgr-btn{width:100%;padding:8px;margin-top:6px;background:linear-gradient(90deg,#FFF8DC,#fffcf0);border:1.5px dashed #FFC600;border-radius:7px;font-size:12px;font-weight:700;color:#b38600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;font-family:inherit}
+.add-mgr-btn:hover{background:#FFC600;color:#111;border-style:solid}
+
 </style>
 </head>
 <body>
@@ -549,6 +566,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
             <option value="training">In Training</option>
           </select>
           <button class="btn bg" style="width:100%;justify-content:center;padding:9px" onclick="addEmp()" id="btn_addemp">+ Add Employee</button>
+        <button class="add-mgr-btn" onclick="addManagerRow()" id="btn_addmgr" title="Add a manager tasks row">⭐ Add My Row (Manager)</button>
         </div>
       </div>
       <hr class="dv">
@@ -1478,13 +1496,51 @@ function renderEmpList(){
   if(!employees.length){ const d=document.createElement('div'); d.style.cssText='text-align:center;padding:17px 0;color:#ccc;font-size:12px'; d.innerHTML=tr('noEmps'); el.appendChild(d); return; }
   employees.forEach(emp=>{
     const chip=document.createElement('div'); chip.className='echip';
-    const ns=document.createElement('span'); ns.textContent=emp.name;
+    // Name display / edit area
+    const nameWrap=document.createElement('div'); nameWrap.style.cssText='display:flex;align-items:center;gap:4px;flex:1;min-width:0';
+    const ns=document.createElement('span'); ns.className='echip-name'; ns.textContent=emp.name; ns.style.cssText='font-size:13px;font-weight:600;color:#222;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    // Edit button (pencil)
+    const editBtn=document.createElement('button'); editBtn.className='echip-edit-btn'; editBtn.title='Edit name';
+    editBtn.textContent='✏️';
+    editBtn.addEventListener('click',(e)=>{ e.stopPropagation(); startEditEmpName(chip,emp,ns,editBtn,cr); });
+    nameWrap.appendChild(ns); nameWrap.appendChild(editBtn);
     const cr=document.createElement('div'); cr.className='ecr';
-    const rb=document.createElement('span'); rb.className='rbdg rb-'+emp.role; rb.textContent=rl[emp.role]||emp.role;
+    const rb=document.createElement('span');
+    rb.className='rbdg '+(emp.isManagerRow?'rb-manager':'rb-'+emp.role);
+    rb.textContent=emp.isManagerRow?'⭐ MGR':(rl[emp.role]||emp.role);
     const del=document.createElement('button'); del.className='edel'; del.textContent='×';
     del.addEventListener('click',()=>removeEmp(emp.id));
-    cr.appendChild(rb); cr.appendChild(del); chip.appendChild(ns); chip.appendChild(cr); el.appendChild(chip);
+    cr.appendChild(rb); cr.appendChild(del);
+    chip.appendChild(nameWrap); chip.appendChild(cr); el.appendChild(chip);
   });
+}
+
+function startEditEmpName(chip,emp,nameSpan,editBtn,cr){
+  // Replace name span with input
+  chip.classList.add('echip-edit-mode');
+  const input=document.createElement('input');
+  input.type='text'; input.className='echip-name-input'; input.value=emp.name; input.maxLength=30;
+  const saveBtn=document.createElement('button'); saveBtn.className='echip-save-btn'; saveBtn.textContent='✓';
+  const nameWrap=nameSpan.parentElement;
+  nameWrap.replaceChild(input,nameSpan);
+  editBtn.style.display='none';
+  nameWrap.insertBefore(saveBtn,editBtn);
+  input.focus(); input.select();
+  const finish=()=>{
+    const newName=input.value.trim();
+    if(newName && newName!==emp.name){
+      emp.name=newName;
+      renderTable(); triggerSave();
+    }
+    nameSpan.textContent=emp.name;
+    nameWrap.replaceChild(nameSpan,input);
+    saveBtn.remove();
+    editBtn.style.display='';
+    chip.classList.remove('echip-edit-mode');
+  };
+  saveBtn.addEventListener('click',finish);
+  input.addEventListener('keydown',(e)=>{ if(e.key==='Enter') finish(); if(e.key==='Escape'){ input.value=emp.name; finish(); } });
+  input.addEventListener('blur',()=>setTimeout(finish,150));
 }
 
 function renderTable(){
@@ -1496,9 +1552,14 @@ function renderTable(){
   employees.forEach(emp=>{
     const tr=document.createElement('tr');
     const ntd=document.createElement('td');
+    if(emp.isManagerRow) ntd.className='mgr-row-namecell';
     const nw=document.createElement('div'); nw.className='enw';
-    const ns=document.createElement('span'); ns.textContent=emp.name;
-    const rs=document.createElement('span'); rs.className='erl'; rs.textContent=rl[emp.role]||emp.role;
+    const ns=document.createElement('span');
+    ns.textContent=emp.name;
+    ns.className=emp.isManagerRow?'mgr-row-emp':'';
+    const rs=document.createElement('span'); rs.className='erl';
+    if(emp.isManagerRow){ rs.innerHTML='<span class="mgr-badge">⭐ Manager</span>'; }
+    else { rs.textContent=rl[emp.role]||emp.role; }
     nw.appendChild(ns); nw.appendChild(rs); ntd.appendChild(nw); tr.appendChild(ntd);
     for(let di=0;di<ND;di++){
       const key=emp.id+'_'+di; const val=schedData[key]||'';
@@ -1957,6 +2018,25 @@ async function msvSave(){
   try{const r=await fetch(_msvUrl),b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement('a');
     a.href=u;a.download='schedule.png';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
   }catch(e){window.open(_msvUrl,'_blank');}
+}
+
+function addManagerRow(){
+  const mgrName=document.getElementById('managerName').value.trim();
+  if(!mgrName){
+    showToast(currentLang==='es'?'Primero escribe el nombre del gerente en la configuración.':'First enter the Manager Name in settings.');
+    document.getElementById('managerName').focus();
+    return;
+  }
+  // Check if manager row already exists
+  const existing=employees.find(e=>e.isManagerRow);
+  if(existing){
+    showToast(currentLang==='es'?'Ya existe una fila de gerente.':'A manager row already exists.');
+    return;
+  }
+  employees.push({id:empCounter++, name:mgrName, role:'manager', isManagerRow:true});
+  renderEmpList(); renderTable();
+  showToast((currentLang==='es'?'Fila de gerente agregada para ':'Manager row added for ')+mgrName+' ✓');
+  triggerSave();
 }
 
 </script>
