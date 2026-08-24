@@ -466,7 +466,7 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .admin-editing-bar .aeb-dot{width:7px;height:7px;border-radius:50%;background:#90caf9;animation:pulse .9s infinite}
 
 
-/* previous redesign removed */
+
 
 /* ── TOPBAR ── */
 .etb{
@@ -897,6 +897,235 @@ table.st tbody td:first-child{font-size:12px}
 .li{color:#444 !important;font-size:11px !important}
 .lh{color:#222 !important}
 
+
+/* ════════════════════════════════════════════════════
+   SIDEBAR + TOPBAR REDESIGN v3 — same Subway colors,
+   completely new structure and layout
+   ════════════════════════════════════════════════════ */
+
+/* Hide old sidebar/topbar classes we replaced */
+.etb{display:none !important}
+.sidebar{width:0 !important;min-width:0 !important;padding:0 !important;border:none !important;overflow:hidden !important}
+
+/* ── NEW TOPBAR ── */
+.etb2{
+  background:#111;
+  height:62px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  border-bottom:3px solid transparent;
+  border-image:linear-gradient(90deg,#FFC600 0%,#008C15 50%,#FFC600 100%) 1;
+  box-shadow:0 2px 20px rgba(0,0,0,.5);
+  position:relative;z-index:10;
+}
+.etb2-logo{height:44px;flex-shrink:0}
+.etb2-divider{width:1px;height:28px;background:#2a2a2a;margin:0 14px;flex-shrink:0}
+.etb2-left{display:flex;align-items:center;gap:0}
+.etb2-info{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.etb2-label{font-size:9px;letter-spacing:3px;color:#444;text-transform:uppercase;font-weight:700}
+.admin-editing-bar{background:linear-gradient(90deg,#1a237e,#1565c0);color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.3px;display:none;align-items:center;gap:6px;margin-left:8px}
+.admin-editing-bar.show{display:flex}
+.aeb-dot{width:6px;height:6px;border-radius:50%;background:#90caf9;animation:pulse .9s infinite;flex-shrink:0}
+
+/* Save chip */
+.save-chip{
+  display:flex;align-items:center;gap:6px;
+  margin-left:16px;
+  background:#1a1a1a;border:1px solid #252525;
+  border-radius:20px;padding:5px 12px;
+  font-size:11px;font-weight:600;color:#555;
+  transition:all .3s;
+}
+.save-chip .dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0;transition:background .3s}
+.save-chip.ok{color:#00c853;border-color:#00c85330}
+.save-chip.ok .dot{background:#00c853;box-shadow:0 0 6px #00c853}
+.save-chip.sv{color:#FFC600;border-color:#FFC60030}
+.save-chip.sv .dot{background:#FFC600;animation:pulse .8s infinite}
+.save-chip.er{color:#ff5252;border-color:#ff525230}
+.save-chip.er .dot{background:#ff5252}
+
+/* Action buttons */
+.etb2-actions{display:flex;align-items:center;gap:10px}
+.etb2-lang{
+  background:transparent;border:1px solid #252525;color:#555;
+  border-radius:20px;padding:6px 13px;font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .15s;letter-spacing:.5px;font-family:inherit;
+}
+.etb2-lang:hover{border-color:#FFC600;color:#FFC600}
+.etb2-group{
+  display:flex;align-items:center;
+  background:#1a1a1a;border:1px solid #252525;border-radius:9px;
+  overflow:hidden;
+}
+.etb2-group-main{border:none;background:transparent;gap:6px}
+.etb2-btn{
+  padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.4px;
+  cursor:pointer;font-family:inherit;transition:all .15s;border:none;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.etb2-btn.ghost{background:transparent;color:#666;border-right:1px solid #252525}
+.etb2-btn.ghost:last-child{border-right:none}
+.etb2-btn.ghost:hover{background:#1e1e1e;color:#fff}
+.etb2-btn.green{
+  background:linear-gradient(135deg,#007a12,#009618);color:#fff;
+  border-radius:9px;box-shadow:0 2px 14px rgba(0,140,21,.35);
+  padding:9px 16px;font-size:11px;
+}
+.etb2-btn.green:hover{background:linear-gradient(135deg,#006b10,#008C15);box-shadow:0 3px 18px rgba(0,140,21,.45)}
+.etb2-btn.yellow{
+  background:linear-gradient(135deg,#e6b200,#FFC600);color:#111;
+  border-radius:9px;box-shadow:0 2px 14px rgba(255,198,0,.3);
+  padding:9px 16px;font-size:11px;font-weight:800;
+}
+.etb2-btn.yellow:hover{background:linear-gradient(135deg,#d4a300,#e6b200)}
+
+/* ── NEW SIDEBAR ── */
+.sb2{
+  width:240px;min-width:240px;flex-shrink:0;
+  background:#fff;border-right:1px solid #f0f0f0;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sb2-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb2-scroll::-webkit-scrollbar{width:3px}
+.sb2-scroll::-webkit-scrollbar-thumb{background:#eee;border-radius:3px}
+
+/* Section */
+.sb-section{border-bottom:1px solid #f5f5f5}
+.sb-section-head{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 14px 9px;cursor:default;
+  background:#fafafa;
+}
+.sb-section-icon{font-size:13px}
+.sb-section-title{
+  font-size:9px;font-weight:800;letter-spacing:2px;
+  color:#aaa;text-transform:uppercase;flex:1;
+}
+.sb-emp-count{
+  background:#008C15;color:#fff;font-size:9px;font-weight:800;
+  border-radius:10px;padding:2px 7px;letter-spacing:.3px;min-width:20px;text-align:center;
+}
+.sb-card{padding:0 12px 12px}
+
+/* Fields */
+.sb-field{margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
+.sb-field label{font-size:9px;color:#bbb;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.sb-field input,.sb-field select{
+  padding:8px 11px;border:1.5px solid #eee;border-radius:8px;
+  font-size:12px;color:#333;background:#fff;font-family:inherit;
+  transition:all .15s;outline:none;
+}
+.sb-field input::placeholder{color:#ccc;font-size:11px}
+.sb-field input:focus,.sb-field select:focus{
+  border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,.08);
+}
+.sb-field select{color:#555;cursor:pointer}
+
+/* Employee list */
+.emp-list{padding:0 12px 4px;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto}
+.sb-empty-emps{text-align:center;padding:18px 0;color:#ccc;font-size:11px;line-height:1.7}
+
+/* Employee chips */
+.echip{
+  background:#fff;border:1.5px solid #f0f0f0;border-radius:9px;
+  padding:8px 10px;transition:all .15s;
+  display:flex;align-items:center;gap:0;
+}
+.echip:hover{border-color:#008C15;background:#f9fff9;box-shadow:0 2px 8px rgba(0,140,21,.08)}
+.echip-edit-mode{border-color:#008C15 !important;box-shadow:0 0 0 3px rgba(0,140,21,.1) !important}
+.echip-name{font-size:12px;font-weight:600;color:#333}
+.rbdg{font-size:8px;padding:2px 8px;border-radius:10px;font-weight:800;letter-spacing:.3px;border:none}
+.rb-manager,.rb-MGR{background:#FFF8DC;color:#b38600}
+.rb-full{background:#e8f5e9;color:#2e7d32}
+.rb-part{background:#e3f2fd;color:#1565c0}
+.rb-training{background:#fff3e0;color:#e65100}
+.edel{color:#e0e0e0;font-size:16px;opacity:1;flex-shrink:0}
+.edel:hover{color:#f44336}
+.echip-edit-btn{color:#e0e0e0;flex-shrink:0}
+.echip-edit-btn:hover{color:#008C15 !important}
+
+/* Add employee area */
+.sb-add-emp{padding:10px 12px 12px}
+.sb-add-row{display:flex;gap:6px;margin-bottom:7px}
+.sb-add-row input{
+  flex:1;padding:8px 10px;border:1.5px solid #eee;border-radius:8px;
+  font-size:12px;color:#333;font-family:inherit;outline:none;transition:all .15s;
+}
+.sb-add-row input::placeholder{color:#ccc;font-size:11px}
+.sb-add-row input:focus{border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,.08)}
+.sb-role-select{
+  padding:8px 6px;border:1.5px solid #eee;border-radius:8px;
+  font-size:11px;color:#555;background:#fff;font-family:inherit;
+  outline:none;cursor:pointer;transition:all .15s;width:90px;flex-shrink:0;
+}
+.sb-role-select:focus{border-color:#008C15}
+.sb-add-btn{
+  width:100%;padding:10px;border:none;border-radius:9px;
+  background:#008C15;color:#fff;
+  font-size:11px;font-weight:800;letter-spacing:.5px;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .15s;
+  box-shadow:0 3px 12px rgba(0,140,21,.25);
+}
+.sb-add-btn:hover{background:#007a12;box-shadow:0 4px 16px rgba(0,140,21,.35);transform:translateY(-1px)}
+.sb-add-btn:active{transform:translateY(0)}
+.sb-special-btn{
+  width:100%;padding:7px;border:1.5px dashed #FFC600;border-radius:9px;
+  background:transparent;color:#b38600;
+  font-size:10px;font-weight:700;letter-spacing:.5px;
+  cursor:pointer;font-family:inherit;
+  margin-top:6px;transition:all .15s;
+}
+.sb-special-btn:hover{background:#FFC600;color:#111;border-style:solid}
+
+/* Notes toolbar */
+.sb-notes-toolbar{
+  display:flex;align-items:center;gap:2px;
+  background:#f8f8f8;border-radius:8px;padding:5px 6px;
+  margin-bottom:8px;border:1px solid #f0f0f0;
+}
+.sb-fmt-btn{
+  padding:5px 9px;border:none;background:transparent;
+  border-radius:6px;font-size:12px;font-weight:700;color:#666;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.sb-fmt-btn:hover{background:#fff;color:#008C15;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.sb-fmt-sep{width:1px;height:16px;background:#e8e8e8;margin:0 2px;flex-shrink:0}
+.sb-clear-btn{color:#ccc;font-size:10px;font-weight:700;letter-spacing:.3px}
+.sb-clear-btn:hover{background:#fff5f5;color:#f44336}
+.notes-editor{
+  border:1.5px solid #eee;border-radius:9px;
+  font-size:12px;min-height:86px;max-height:150px;
+  background:#fff;color:#333;padding:10px 12px;
+  transition:all .15s;
+}
+.notes-editor:focus{border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,.08);outline:none}
+.notes-editor:empty::before{color:#ccc;font-size:11px}
+
+/* mwrap uses sb2 instead of sidebar */
+.mwrap{display:flex;flex:1;overflow:hidden}
+
+/* ── CONTENT ── */
+.content{
+  flex:1;padding:18px;overflow:auto;
+  background:#f4f5f6;
+}
+.sw{
+  border-radius:14px;
+  box-shadow:0 4px 30px rgba(0,0,0,.12);
+  overflow:hidden;
+}
+.sh{border-radius:0}
+
+/* Legend */
+.legbar{background:#fff;border-top:1px solid #f0f0f0;padding:9px 18px}
+.legbar strong{color:#ccc;font-size:9px;letter-spacing:1.5px}
+.li{color:#bbb;font-size:11px}
+
+/* Totals */
+.totbar{border-radius:0}
+
 </style>
 </head>
 <body>
@@ -1005,65 +1234,119 @@ table.st tbody td:first-child{font-size:12px}
 
 <!-- EDITOR SCREEN -->
 <div id="editorScreen" class="screen" style="flex-direction:column;overflow:hidden">
-  <div class="etb">
-    <div class="etb-l">
-      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" style="height:48px">
-      <div class="tb-div"></div>
-      <span class="tb-sub" id="etb_sub">Schedule Maker</span>
-      <div class="admin-editing-bar" id="adminEditingBar"><div class="aeb-dot"></div><span id="adminEditingBarText"></span></div>
-    <div class="save-ind" id="saveInd"><div class="dot"></div><span id="saveTxt">No changes</span></div>
+  <div class="etb2">
+    <div class="etb2-left">
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" alt="Subway" class="etb2-logo">
+      <div class="etb2-divider"></div>
+      <div class="etb2-info">
+        <span class="etb2-label" id="etb_sub">SCHEDULE MAKER</span>
+        <div class="admin-editing-bar" id="adminEditingBar"><div class="aeb-dot"></div><span id="adminEditingBarText"></span></div>
+      </div>
+      <div class="save-chip" id="saveInd">
+        <div class="dot"></div>
+        <span id="saveTxt">Saved</span>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button id="langBtnEditor" onclick="toggleLang()" style="background:transparent;border:1px solid #555;border-radius:20px;padding:6px 13px;font-size:11px;font-weight:700;color:#FFC600;cursor:pointer">🌐 EN/ES</button>
-      <button class="btn bo bsm" onclick="goHome()">🏠 <span id="btn_home">Home</span></button>
-      <button class="btn bo bsm" onclick="clearAll()">🗑 <span id="btn_clear">Clear All</span></button>
-      <button class="btn bg bsm" onclick="openQRModal()">📱 <span id="btn_qr_lbl">Send to Phone</span></button>
-      <button class="btn by bsm" onclick="window.print()">🖨 <span id="btn_print">Print</span></button>
+    <div class="etb2-actions">
+      <button id="langBtnEditor" onclick="toggleLang()" class="etb2-lang">🌐 EN/ES</button>
+      <div class="etb2-group">
+        <button class="etb2-btn ghost" onclick="goHome()">🏠 <span id="btn_home">Home</span></button>
+        <button class="etb2-btn ghost" onclick="clearAll()">🗑 <span id="btn_clear">Clear</span></button>
+      </div>
+      <div class="etb2-group etb2-group-main">
+        <button class="etb2-btn green" onclick="openQRModal()">📱 <span id="btn_qr_lbl">Send to Phone</span></button>
+        <button class="etb2-btn yellow" onclick="window.print()">🖨 <span id="btn_print">Print</span></button>
+      </div>
     </div>
   </div>
   <div class="mwrap" style="flex:1;overflow:hidden">
-    <div class="sidebar">
-      <div>
-        <div class="stitle" id="sb_week">📅 Week Settings</div>
-        <div class="fg" style="margin-bottom:7px"><label id="lbl_store">Store / Location</label><input type="text" id="storeName" placeholder="Subway - Store #" oninput="updateHeader()"></div>
-        <div class="fg" style="margin-bottom:7px"><label id="lbl_mgr">Manager Name</label><input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader()"></div>
-        <div class="fg" style="margin-bottom:7px"><label id="lbl_wstart">Week Start (Wed)</label><input type="date" id="weekStart" oninput="updateDates()"></div>
-      </div>
-      <hr class="dv">
-      <div>
-        <div class="stitle" id="sb_emps">👥 Employees</div>
-        <div class="emp-list" id="empList"><div style="text-align:center;padding:17px 0;color:#ccc;font-size:12px" id="noEmps">No employees yet.<br>Add one below ↓</div></div>
-        <div class="addform">
-          <input type="text" id="newEmpName" placeholder="Employee name..." maxlength="30" onkeydown="if(event.key==='Enter')addEmp()">
-          <select id="newEmpRole">
-            <option value="full">Full Time</option>
-            <option value="part">Part Time</option>
-            <option value="manager">Shift Manager</option>
-            <option value="training">In Training</option>
-          </select>
-          <button class="btn bg" style="width:100%;justify-content:center;padding:9px" onclick="addEmp()" id="btn_addemp">+ Add Employee</button>
-        <button class="add-mgr-btn" onclick="addManagerRow()" id="btn_addmgr" title="Add a special row for manager tasks">+ Add Special Row</button>
+    <div class="sb2"><div class="sb2-scroll">
+
+      <!-- WEEK SETTINGS -->
+      <div class="sb-section">
+        <div class="sb-section-head">
+          <span class="sb-section-icon">📅</span>
+          <span class="sb-section-title" id="sb_week">Week Settings</span>
+        </div>
+        <div class="sb-card">
+          <div class="sb-field">
+            <label id="lbl_store">Store</label>
+            <input type="text" id="storeName" placeholder="Subway — Store #" oninput="updateHeader()">
+          </div>
+          <div class="sb-field">
+            <label id="lbl_mgr">Manager</label>
+            <input type="text" id="managerName" placeholder="e.g. Devon" oninput="updateHeader()">
+          </div>
+          <div class="sb-field">
+            <label id="lbl_wstart">Week starts</label>
+            <input type="date" id="weekStart" oninput="updateDates()">
+          </div>
         </div>
       </div>
-      <hr class="dv">
-      <div>
-        <div class="stitle" id="sb_notes">📝 Notes</div>
-        <div class="fg" style="margin-bottom:8px"><label id="lbl_ntitle">Notes Title</label>
-          <select id="notesTitle" onchange="syncNotes()"><option value="Notes">Notes</option><option value="Notice">Notice</option><option value="Announcement">Announcement</option><option value="Warning">Warning</option><option value="Reminder">Reminder</option><option value="Important">Important</option></select>
+
+      <!-- EMPLOYEES -->
+      <div class="sb-section">
+        <div class="sb-section-head">
+          <span class="sb-section-icon">👥</span>
+          <span class="sb-section-title" id="sb_emps">Employees</span>
+          <span class="sb-emp-count" id="sbEmpCount">0</span>
         </div>
-        <div class="notes-tb">
-          <button class="ntb" style="font-weight:900;font-size:14px" onclick="noteFmt('bold')" title="Bold">B</button>
-          <button class="ntb" style="font-style:italic" onclick="noteFmt('italic')" title="Italic">I</button>
-          <div class="ntb-div"></div>
-          <button class="ntb" onclick="noteSizeUp()" title="Larger text">A+</button>
-          <button class="ntb" onclick="noteSizeDown()" title="Smaller text">A-</button>
-          <div class="ntb-div"></div>
-          <button class="ntb" onclick="clearNotesWithUndo()" title="Clear (Ctrl+Z to undo)" style="color:#999;font-size:11px">Clear</button>
+        <div class="emp-list" id="empList">
+          <div class="sb-empty-emps" id="noEmps">No employees yet.<br>Add one below ↓</div>
         </div>
-        <div id="notesEditor" class="notes-editor" contenteditable="true" data-ph="Type your notes here..." oninput="syncNotes()"></div>
-        <p style="font-size:10px;color:#ccc;margin-top:5px" id="notes_desc">Appears at the bottom when printed. Select text then click B or I.</p>
+        <div class="sb-add-emp">
+          <div class="sb-add-row">
+            <input type="text" id="newEmpName" placeholder="Name..." maxlength="30" onkeydown="if(event.key==='Enter')addEmp()">
+            <select id="newEmpRole" class="sb-role-select">
+              <option value="full">Full Time</option>
+              <option value="part">Part Time</option>
+              <option value="manager">Shift Manager</option>
+              <option value="training">In Training</option>
+            </select>
+          </div>
+          <button class="sb-add-btn" onclick="addEmp()" id="btn_addemp">
+            <span>＋</span> Add Employee
+          </button>
+          <button class="sb-special-btn" onclick="addManagerRow()" id="btn_addmgr">
+            ＋ Add Special Row
+          </button>
+        </div>
       </div>
-    </div>
+
+      <!-- NOTES -->
+      <div class="sb-section">
+        <div class="sb-section-head">
+          <span class="sb-section-icon">📝</span>
+          <span class="sb-section-title" id="sb_notes">Notes</span>
+        </div>
+        <div class="sb-card">
+          <div class="sb-field">
+            <label id="lbl_ntitle">Label</label>
+            <select id="notesTitle" onchange="syncNotes()">
+              <option value="Notes">Notes</option>
+              <option value="Notice">Notice</option>
+              <option value="Announcement">Announcement</option>
+              <option value="Warning">Warning</option>
+              <option value="Reminder">Reminder</option>
+              <option value="Important">Important</option>
+            </select>
+          </div>
+          <div class="sb-notes-toolbar">
+            <button class="sb-fmt-btn" onclick="noteFmt('bold')"><b>B</b></button>
+            <button class="sb-fmt-btn" onclick="noteFmt('italic')"><i>I</i></button>
+            <div class="sb-fmt-sep"></div>
+            <button class="sb-fmt-btn" onclick="noteSizeUp()">A+</button>
+            <button class="sb-fmt-btn" onclick="noteSizeDown()">A−</button>
+            <div class="sb-fmt-sep"></div>
+            <button class="sb-fmt-btn sb-clear-btn" onclick="clearNotesWithUndo()">✕ Clear</button>
+          </div>
+          <div id="notesEditor" class="notes-editor" contenteditable="true"
+            data-ph="Add a note for this schedule..."
+            oninput="syncNotes(); updateSbEmpCount()"></div>
+        </div>
+      </div>
+
+    </div></div>
     <div class="content">
       <div class="empty-st" id="emptyState">
         <div class="ei">📋</div>
@@ -2823,6 +3106,11 @@ function addManagerRow(){
   okBtn.addEventListener('click',confirm);
   cancelBtn.addEventListener('click',cancel);
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter') confirm(); if(e.key==='Escape') cancel(); });
+}
+
+function updateSbEmpCount(){
+  const el=document.getElementById('sbEmpCount');
+  if(el) el.textContent=employees.length;
 }
 
 </script>
