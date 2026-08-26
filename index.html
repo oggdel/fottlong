@@ -1955,15 +1955,15 @@ async function openQRModal(){
 
   // Bigger fonts and cells so everything is readable at this size
   clone.querySelectorAll('.shi').forEach(el=>{
-    el.style.fontSize='20px';el.style.fontWeight='700';el.style.padding='12px 6px';
+    el.style.fontSize='20px';el.style.fontWeight='700';el.style.padding='28px 6px';
   });
   clone.querySelectorAll('thead th').forEach(th=>{
-    th.style.padding='16px 8px';
+    th.style.padding='26px 8px';
     const thd=th.querySelector('.thd');if(thd)thd.style.fontSize='18px';
     const thdt=th.querySelector('.thdt');if(thdt)thdt.style.fontSize='14px';
   });
   clone.querySelectorAll('tbody td:first-child').forEach(td=>{
-    td.style.padding='14px 18px';td.style.width='200px';
+    td.style.padding='28px 18px';td.style.width='200px';
     const span=td.querySelector('.enw span');if(span)span.style.fontSize='18px';
   });
   const h2=clone.querySelector('.sh-ttl h2');if(h2)h2.style.fontSize='26px';
