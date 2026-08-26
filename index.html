@@ -1939,7 +1939,7 @@ async function openQRModal(){
   }
 
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:3200px;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
   offscreen.appendChild(clone);
@@ -2006,14 +2006,23 @@ async function openQRModal(){
     if(img.src && img.src.includes('Subway')) img.style.height='60px';
   });
 
-  // Data rows — more height
-  clone.querySelectorAll('tbody tr').forEach(tr=>{ tr.style.height='60px'; });
+  // Make rows TALL so it reads vertically big
+  clone.querySelectorAll('tbody tr').forEach(tr=>{ tr.style.height='100px'; });
+  clone.querySelectorAll('.shi').forEach(el=>{
+    el.style.fontSize='26px';
+    el.style.fontWeight='800';
+    el.style.padding='22px 8px';
+    el.style.minWidth='120px';
+  });
+  clone.querySelectorAll('tbody td:first-child').forEach(td=>{
+    td.style.padding='20px 18px';
+  });
+  clone.querySelectorAll('thead th').forEach(th=>{
+    th.style.padding='22px 10px';
+  });
+  const totbarEl=clone.querySelector('.totbar');
+  if(totbarEl) totbarEl.style.padding='24px 30px';
 
-  // Force table to fill container width
-  const tbl=clone.querySelector('table.st');
-  if(tbl){tbl.style.width='100%';tbl.style.tableLayout='fixed';}
-  clone.style.width='3200px';
-  clone.querySelector && clone.querySelector('.sw')&&(clone.querySelector('.sw').style.minWidth='0');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
     st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
