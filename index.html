@@ -1939,7 +1939,7 @@ async function openQRModal(){
   }
 
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:3200px;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
   offscreen.appendChild(clone);
@@ -2009,6 +2009,11 @@ async function openQRModal(){
   // Data rows — more height
   clone.querySelectorAll('tbody tr').forEach(tr=>{ tr.style.height='60px'; });
 
+  // Force table to fill container width
+  const tbl=clone.querySelector('table.st');
+  if(tbl){tbl.style.width='100%';tbl.style.tableLayout='fixed';}
+  clone.style.width='3200px';
+  clone.querySelector && clone.querySelector('.sw')&&(clone.querySelector('.sw').style.minWidth='0');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
     st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
