@@ -1920,139 +1920,163 @@ function adminDeleteSched(id,title,cardEl){
 let _schedBlob=null;
 
 async function openQRModal(){
-  const modal=document.getElementById('qrModal'); modal.classList.add('on');
-  const st=document.getElementById('qrStatus');
-  const prev=document.getElementById('qrPreview');
-  const wrap=document.getElementById('qrWrap');
-  const steps=document.getElementById('qrSteps');
-  const dlBtn=document.getElementById('btnDlImg');
-  const qrDiv=document.getElementById('qrCode');
+  const modal=document.getElementById('qrModal');modal.classList.add('on');
+  const st=document.getElementById('qrStatus'),prev=document.getElementById('qrPreview'),
+        wrap=document.getElementById('qrWrap'),steps=document.getElementById('qrSteps'),
+        dlBtn=document.getElementById('btnDlImg'),qrDiv=document.getElementById('qrCode');
   st.className='qr-status';
-  st.textContent=currentLang==='es'?'Preparando captura...':'Preparing capture...';
-  prev.style.display='none'; wrap.style.display='none'; steps.style.display='none';
-  dlBtn.style.display='none'; qrDiv.innerHTML=''; _schedBlob=null;
+  st.textContent=currentLang==='es'?'Preparando...':'Preparing...';
+  prev.style.display='none';wrap.style.display='none';steps.style.display='none';
+  dlBtn.style.display='none';qrDiv.innerHTML='';_schedBlob=null;
 
-  const el=document.getElementById('schedWrap');
-  if(!el||el.style.display==='none'){
-    st.textContent=currentLang==='es'?'⚠️ No hay horario.':'⚠️ No schedule to capture.';
-    st.className='qr-status err'; return;
+  if(!employees.length){
+    st.textContent=currentLang==='es'?'⚠️ No hay empleados.':'⚠️ No employees in schedule.';
+    st.className='qr-status err';return;
   }
 
+  /* Build a square image: same design, split into 2 day groups */
+  const shareEl=buildSquareShare();
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
-  const clone=el.cloneNode(true);
-  offscreen.appendChild(clone);
-
-  // Copy input values
-  Array.from(el.querySelectorAll('.shi')).forEach((inp,i)=>{
-    const ci=clone.querySelectorAll('.shi')[i]; if(ci) ci.value=inp.value;
-  });
-
-  /* ── Agrandar TODO directamente con inline styles ── */
-
-  // Shift inputs — más grandes y legibles
-  clone.querySelectorAll('.shi').forEach(el=>{
-    el.style.fontSize='22px';
-    el.style.fontWeight='800';
-    el.style.padding='14px 8px';
-    el.style.minWidth='150px';
-    el.style.borderRadius='8px';
-  });
-
-  // Header columns (days)
-  clone.querySelectorAll('thead th').forEach((th,i)=>{
-    th.style.padding='18px 10px';
-    th.style.fontSize='14px';
-    const thd=th.querySelector('.thd');
-    if(thd){ thd.style.fontSize='20px'; thd.style.fontWeight='900'; }
-    const thdt=th.querySelector('.thdt');
-    if(thdt){ thdt.style.fontSize='15px'; }
-  });
-
-  // Employee name cells
-  clone.querySelectorAll('tbody td:first-child').forEach(td=>{
-    td.style.padding='16px 20px';
-    td.style.minWidth='200px';
-    const spans=td.querySelectorAll('span, div');
-    spans.forEach(s=>{ if(s.classList.contains('erl')){ s.style.fontSize='13px'; } });
-    const enw=td.querySelector('.enw');
-    if(enw){
-      const name=enw.querySelector('span:first-child, div:first-child');
-      if(name){ name.style.fontSize='20px'; name.style.fontWeight='900'; }
-    }
-  });
-
-  // Schedule header
-  const h2=clone.querySelector('.sh-ttl h2');
-  if(h2){ h2.style.fontSize='28px'; h2.style.fontWeight='900'; }
-  const wl=clone.querySelector('.sh-ttl .wl');
-  if(wl){ wl.style.fontSize='16px'; }
-  const mn=clone.querySelector('.sh-r .mn');
-  if(mn){ mn.style.fontSize='22px'; mn.style.fontWeight='900'; }
-  const ml=clone.querySelector('.sh-r .ml');
-  if(ml){ ml.style.fontSize='13px'; }
-  const sn=clone.querySelector('.sh-r .sn');
-  if(sn){ sn.style.fontSize='14px'; }
-
-  // Stats bar
-  clone.querySelectorAll('.tstat .tv').forEach(el=>{ el.style.fontSize='32px'; el.style.fontWeight='900'; });
-  clone.querySelectorAll('.tstat .tl').forEach(el=>{ el.style.fontSize='13px'; el.style.letterSpacing='1.5px'; });
-  const totbar=clone.querySelector('.totbar');
-  if(totbar){ totbar.style.padding='20px 30px'; }
-
-  // Logo bigger
-  clone.querySelectorAll('img').forEach(img=>{
-    if(img.src && img.src.includes('Subway')) img.style.height='60px';
-  });
-
-  // Make rows TALL so it reads vertically big
-  clone.querySelectorAll('tbody tr').forEach(tr=>{ tr.style.height='100px'; });
-  clone.querySelectorAll('.shi').forEach(el=>{
-    el.style.fontSize='26px';
-    el.style.fontWeight='800';
-    el.style.padding='22px 8px';
-    el.style.minWidth='120px';
-  });
-  clone.querySelectorAll('tbody td:first-child').forEach(td=>{
-    td.style.padding='20px 18px';
-  });
-  clone.querySelectorAll('thead th').forEach(th=>{
-    th.style.padding='22px 10px';
-  });
-  const totbarEl=clone.querySelector('.totbar');
-  if(totbarEl) totbarEl.style.padding='24px 30px';
-
+  offscreen.appendChild(shareEl);
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
     st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
-    const canvas=await html2canvas(clone,{
-      scale:3,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0
-    });
+    const canvas=await html2canvas(shareEl,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0});
     document.body.removeChild(offscreen);
-    prev.src=canvas.toDataURL('image/png');
-    prev.style.display='block'; dlBtn.style.display='inline-flex';
+    prev.src=canvas.toDataURL('image/png');prev.style.display='block';dlBtn.style.display='inline-flex';
     st.textContent=currentLang==='es'?'Subiendo...':'Uploading...';
     canvas.toBlob(async(blob)=>{
       _schedBlob=blob;
       const fname='sched_'+Date.now()+'.png';
       const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
-      if(error){
-        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Failed: ')+error.message;
-        st.className='qr-status err'; return;
-      }
+      if(error){st.textContent='⚠️ '+error.message;st.className='qr-status err';return;}
       const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
       const shareUrl=window.location.href.split('?')[0]+'?imgurl='+encodeURIComponent(ud.publicUrl);
       qrDiv.innerHTML='';
       new QRCode(qrDiv,{text:shareUrl,width:188,height:188,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-      wrap.style.display='flex'; steps.style.display='block';
-      st.textContent=currentLang==='es'?'✓ Listo — escanea el QR':'✓ Ready — scan the QR';
-      st.className='qr-status ok';
+      wrap.style.display='flex';steps.style.display='block';
+      st.textContent=currentLang==='es'?'✓ Listo':'✓ Ready';st.className='qr-status ok';
     },'image/png');
   }catch(err){
-    if(document.body.contains(offscreen)) document.body.removeChild(offscreen);
-    st.textContent='Error: '+err.message; st.className='qr-status err';
+    if(document.body.contains(offscreen))document.body.removeChild(offscreen);
+    st.textContent='Error: '+err.message;st.className='qr-status err';
   }
+}
+
+function buildSquareShare(){
+  const dn=DAYS[currentLang]||DAYS.en;
+  const dates=getDates();
+  const rl=ROLES[currentLang]||ROLES.en;
+  const isEs=currentLang==='es';
+
+  const managerName=document.getElementById('managerName').value.trim()||'—';
+  const storeName=document.getElementById('storeName').value.trim();
+  const title=document.getElementById('hdrTitle').textContent;
+  const weekLabel=document.getElementById('hdrWeek').textContent;
+  const noteEl=document.getElementById('notesEditor');
+  const notes=noteEl?noteEl.innerHTML.trim():'';
+  const notesTitle=document.getElementById('notesTitle').value;
+
+  let shifts=0,offs=0;
+  employees.forEach(emp=>{for(let d=0;d<7;d++){const v=(schedData[emp.id+'_'+d]||'').toLowerCase().trim();if(v&&v!=='x')shifts++;if(v==='off')offs++;}});
+  const pct=employees.length?Math.round((shifts/(employees.length*7))*100)+'%':'—';
+
+  const clr=v=>{
+    if(!v)return{bg:'#f0f0f0',c:'#ccc'};
+    const l=v.toLowerCase().trim();
+    if(l==='off')return{bg:'#e8e8e8',c:'#999'};
+    if(l==='x')return{bg:'#f5f5f5',c:'#bbb'};
+    if(l==='training')return{bg:'#fff8e1',c:'#b38600'};
+    if(l.includes('close'))return{bg:'#fff0e6',c:'#cc5522'};
+    if(l==='open'||l.startsWith('open'))return{bg:'#e6f7e6',c:'#2a882a'};
+    return{bg:'#e8eeff',c:'#2244bb'};
+  };
+
+  const makeTable=(dayIdxs,bgHead)=>{
+    let h=`<table style="width:100%;border-collapse:collapse;table-layout:fixed">`;
+    // Header
+    h+=`<thead><tr style="background:${bgHead}">`;
+    h+=`<th style="width:160px;text-align:left;padding:14px 16px;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:#005e0e">${isEs?'EMPLEADO':'EMPLOYEE'}</th>`;
+    dayIdxs.forEach(i=>{
+      h+=`<th style="text-align:center;padding:14px 10px;color:#fff;font-weight:900;border-left:1px solid rgba(255,255,255,.2)">
+        <div style="font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:.5px">${dn[i].toUpperCase()}</div>
+        <div style="font-size:13px;font-weight:400;opacity:.8;margin-top:4px">${dates[i]}</div>
+      </th>`;
+    });
+    h+=`</tr></thead><tbody>`;
+    // Rows
+    employees.forEach((emp,ri)=>{
+      const isMgr=emp.isManagerRow;
+      h+=`<tr style="background:${ri%2===0?'#f9fffa':'#fff'};border-bottom:1px solid #ddd">`;
+      h+=`<td style="padding:14px 16px;${isMgr?'background:#fafdf8;border-left:4px solid #FFC600;':'background:#f4fcf4;border-left:3px solid #a8d8a8;'}border-right:2px solid #ccc">
+        <div style="font-size:16px;font-weight:800;color:#111">${emp.name}</div>
+        <div style="font-size:11px;color:${isMgr?'#b38600':'#aaa'};text-transform:uppercase;letter-spacing:.5px;margin-top:3px">${isMgr?'MANAGER':(rl[emp.role]||emp.role)}</div>
+      </td>`;
+      dayIdxs.forEach(di=>{
+        const val=schedData[emp.id+'_'+di]||'';
+        const {bg,c}=clr(val);
+        h+=`<td style="padding:10px 8px;text-align:center;border-left:1px solid #eee">
+          <div style="background:${bg};color:${c};padding:11px 6px;border-radius:7px;font-size:17px;font-weight:700;min-height:40px;display:flex;align-items:center;justify-content:center">${val||'<span style="color:#ddd;font-size:14px">—</span>'}</div>
+        </td>`;
+      });
+      h+=`</tr>`;
+    });
+    h+=`</tbody></table>`;
+    return h;
+  };
+
+  let html=`<div style="width:900px;font-family:Segoe UI,Arial,sans-serif;background:#fff;overflow:hidden">`;
+
+  // Header
+  html+=`<div style="background:#111;display:flex;align-items:stretch">
+    <div style="background:#FFC600;width:10px;flex-shrink:0"></div>
+    <div style="background:#008C15;width:10px;flex-shrink:0"></div>
+    <div style="flex:1;padding:16px 22px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="color:#FFC600;font-size:22px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase">${title}</div>
+        <div style="color:#555;font-size:13px;margin-top:5px">${weekLabel}</div>
+      </div>
+      <img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:52px">
+      <div style="text-align:right">
+        <div style="color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">${isEs?'GERENTE':'MANAGER'}</div>
+        <div style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase">${managerName}</div>
+        ${storeName?`<div style="color:#666;font-size:12px;margin-top:2px">${storeName}</div>`:''}
+      </div>
+    </div>
+  </div>
+  <div style="height:4px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)"></div>`;
+
+  // Group 1: Wed–Sat
+  html+=makeTable([0,1,2,3],'#008C15');
+  // Divider
+  html+=`<div style="height:6px;background:linear-gradient(90deg,#FFC600,#008C15)"></div>`;
+  // Group 2: Sun–Tue
+  html+=makeTable([4,5,6],'#006b10');
+
+  // Notes
+  if(notes){
+    html+=`<div style="padding:11px 16px;border-top:2px dashed #FFC600;background:#fffdf0">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#FFC600;font-weight:700;margin-bottom:4px">📝 ${notesTitle}</div>
+      <div style="font-size:13px;color:#333;line-height:1.6">${notes}</div>
+    </div>`;
+  }
+
+  // Stats
+  html+=`<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:16px 24px;border-top:3px solid #FFC600">`;
+  [{v:employees.length,l:isEs?'EMPLEADOS':'EMPLOYEES'},{v:shifts,l:isEs?'TURNOS':'SHIFTS'},{v:offs,l:isEs?'DÍAS LIBRES':'DAYS OFF'},{v:pct,l:isEs?'COBERTURA':'COVERAGE'}].forEach(s=>{
+    html+=`<div style="text-align:center">
+      <div style="color:#FFC600;font-size:28px;font-weight:900;line-height:1">${s.v}</div>
+      <div style="color:#555;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">${s.l}</div>
+    </div>`;
+  });
+  html+=`<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:44px">`;
+  html+=`</div></div>`;
+
+  const w=document.createElement('div');
+  w.innerHTML=html;
+  return w.firstElementChild;
 }
 
 
