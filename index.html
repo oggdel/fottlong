@@ -1936,10 +1936,10 @@ async function openQRModal(){
   }
 
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:4000px;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
-  clone.style.cssText='width:4000px;min-width:4000px;';
+  clone.style.cssText='';
   offscreen.appendChild(clone);
 
   // Copy input values
@@ -1959,7 +1959,7 @@ async function openQRModal(){
   clone.querySelectorAll('.shi').forEach(el=>{
     el.style.fontSize='26px';
     el.style.fontWeight='700';
-    el.style.padding='26px 10px';
+    el.style.padding='55px 10px';
     el.style.width='100%';
     el.style.boxSizing='border-box';
     el.style.textAlign='center';
@@ -1967,7 +1967,7 @@ async function openQRModal(){
 
   // Day headers
   clone.querySelectorAll('thead th').forEach(th=>{
-    th.style.padding='24px 12px';
+    th.style.padding='44px 12px';
     th.style.fontSize='22px';
     th.style.overflow='hidden';
     const thd=th.querySelector('.thd');
@@ -1978,7 +1978,7 @@ async function openQRModal(){
 
   // Employee name column — wide enough, no clipping
   clone.querySelectorAll('tbody td:first-child').forEach(td=>{
-    td.style.padding='26px 20px';
+    td.style.padding='55px 20px';
     td.style.width='260px';
     td.style.minWidth='260px';
     td.style.overflow='hidden';
@@ -2002,7 +2002,7 @@ async function openQRModal(){
   // Stats bar
   clone.querySelectorAll('.tstat .tv').forEach(el=>{el.style.fontSize='30px';el.style.fontWeight='900';});
   clone.querySelectorAll('.tstat .tl').forEach(el=>{el.style.fontSize='13px';el.style.letterSpacing='1.5px';});
-  const totbar=clone.querySelector('.totbar');if(totbar)totbar.style.padding='22px 30px';
+  const totbar=clone.querySelector('.totbar');if(totbar)totbar.style.padding='34px 30px';
 
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
