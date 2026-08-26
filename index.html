@@ -1927,44 +1927,74 @@ async function openQRModal(){
   const steps=document.getElementById('qrSteps');
   const dlBtn=document.getElementById('btnDlImg');
   const qrDiv=document.getElementById('qrCode');
-  st.className='qr-status'; st.textContent=currentLang==='es'?'Preparando...':'Preparing...';
+  st.className='qr-status';
+  st.textContent=currentLang==='es'?'Preparando captura...':'Preparing capture...';
   prev.style.display='none'; wrap.style.display='none'; steps.style.display='none';
   dlBtn.style.display='none'; qrDiv.innerHTML=''; _schedBlob=null;
+
   const el=document.getElementById('schedWrap');
   if(!el||el.style.display==='none'){
-    st.textContent=currentLang==='es'?'⚠️ No hay horario.':'⚠️ No schedule to capture.';
+    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture.';
     st.className='qr-status err'; return;
   }
+
+  // Clone and enlarge everything for a clear readable photo
   const offscreen=document.createElement('div');
   offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
-  // Hide live preview in the clone (only print notes section)
-  const lp=clone.querySelector('#notesLivePreview'); if(lp) lp.style.display='none';
   offscreen.appendChild(clone);
-  const origInps=Array.from(el.querySelectorAll('.shi'));
-  const cloneInps=Array.from(clone.querySelectorAll('.shi'));
-  origInps.forEach((inp,i)=>{ if(cloneInps[i]) cloneInps[i].value=inp.value; });
+
+  // Copy input values
+  Array.from(el.querySelectorAll('.shi')).forEach((inp,i)=>{
+    const ci=clone.querySelectorAll('.shi')[i]; if(ci) ci.value=inp.value;
+  });
+
+  // Make everything BIGGER and readable
+  const style=document.createElement('style');
+  style.textContent=`
+    .shi { font-size:18px !important; padding:10px 6px !important; font-weight:700 !important; }
+    table.st thead th { font-size:15px !important; padding:14px 8px !important; }
+    table.st thead th .thd { font-size:17px !important; }
+    table.st thead th .thdt { font-size:13px !important; }
+    table.st tbody td { padding:10px 6px !important; min-width:130px !important; }
+    table.st tbody td:first-child { padding:12px 16px !important; min-width:180px !important; }
+    .enw { gap:4px !important; }
+    .enw span:first-child { font-size:17px !important; font-weight:800 !important; }
+    .erl { font-size:12px !important; }
+    .sh-ttl h2 { font-size:22px !important; }
+    .sh-ttl .wl { font-size:14px !important; }
+    .sh-r .mn { font-size:18px !important; }
+    .sh-r .ml { font-size:12px !important; }
+    .sh-r .sn { font-size:13px !important; }
+    .tstat .tv { font-size:26px !important; }
+    .tstat .tl { font-size:11px !important; }
+    .totbar { padding:16px 26px !important; }
+  `;
+  clone.appendChild(style);
+
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
-    st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
-    const canvas=await html2canvas(clone,{scale:5,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0});
+    st.textContent=currentLang==='es'?'Capturando en alta calidad...':'Capturing in high quality...';
+    const canvas=await html2canvas(clone,{
+      scale:3,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0
+    });
     document.body.removeChild(offscreen);
     const dataUrl=canvas.toDataURL('image/png');
     prev.src=dataUrl; prev.style.display='block'; dlBtn.style.display='inline-flex';
-    st.textContent=currentLang==='es'?'Subiendo...':'Uploading...';
+    st.textContent=currentLang==='es'?'Subiendo imagen...':'Uploading image...';
     canvas.toBlob(async(blob)=>{
       _schedBlob=blob;
       const fname='sched_'+Date.now()+'.png';
       const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
       if(error){
-        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Failed: ')+error.message;
+        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Upload failed: ')+error.message;
         st.className='qr-status err'; return;
       }
       const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
       const shareUrl=window.location.href.split('?')[0]+'?imgurl='+encodeURIComponent(ud.publicUrl);
       qrDiv.innerHTML='';
-      new QRCode(qrDiv,{text:shareUrl,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      new QRCode(qrDiv,{text:shareUrl,width:188,height:188,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
       wrap.style.display='flex'; steps.style.display='block';
       st.textContent=currentLang==='es'?'✓ Listo — escanea el QR':'✓ Ready — scan the QR';
       st.className='qr-status ok';
