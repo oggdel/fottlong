@@ -1986,7 +1986,7 @@ function buildShareElement(){
   const pct=employees.length>0?Math.round((totalShifts/(employees.length*7))*100)+'%':'—';
 
   const cellBg=(v)=>{
-    if(!v||v.trim()==='') return {bg:'#f0f0f0',color:'#bbb'};
+    if(!v||v.trim()==='') return {bg:'#f0f0f0',color:'#ccc'};
     const l=v.toLowerCase().trim();
     if(l==='off') return {bg:'#ebebeb',color:'#999'};
     if(l==='x') return {bg:'#f5f5f5',color:'#bbb'};
@@ -1996,72 +1996,80 @@ function buildShareElement(){
     return {bg:'#e8eeff',color:'#2244bb'};
   };
 
-  // ── HEADER ──
-  let html='<div style="width:1320px;font-family:Segoe UI,Arial,sans-serif;background:#fff;overflow:hidden">';
+  /* ── 1600px wide — true landscape, matches phone horizontal view ── */
+  let html='<div style="width:1600px;font-family:Segoe UI,Arial,sans-serif;background:#fff;overflow:hidden">';
+
+  /* HEADER */
   html+='<div style="background:#111;display:flex;align-items:stretch">';
-  html+='<div style="background:#FFC600;width:10px;flex-shrink:0"></div>';
-  html+='<div style="background:#008C15;width:10px;flex-shrink:0"></div>';
-  html+='<div style="flex:1;padding:16px 22px;display:flex;align-items:center;justify-content:space-between">';
-  html+='<div><div style="color:#FFC600;font-size:22px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase">'+title+'</div>';
-  html+='<div style="color:#666;font-size:12px;margin-top:5px">'+weekLabel+'</div></div>';
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:52px">';
-  html+='<div style="text-align:right"><div style="color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">'+(isEs?'GERENTE':'MANAGER')+'</div>';
-  html+='<div style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase">'+managerName+'</div>';
-  if(storeName) html+='<div style="color:#777;font-size:11px;margin-top:2px">'+storeName+'</div>';
+  html+='<div style="background:#FFC600;width:12px;flex-shrink:0"></div>';
+  html+='<div style="background:#008C15;width:12px;flex-shrink:0"></div>';
+  html+='<div style="flex:1;padding:18px 26px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div>';
+  html+='<div style="color:#FFC600;font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase;line-height:1">'+title+'</div>';
+  html+='<div style="color:#555;font-size:13px;margin-top:6px;letter-spacing:.5px">'+weekLabel+'</div>';
+  html+='</div>';
+  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:60px">';
+  html+='<div style="text-align:right">';
+  html+='<div style="color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">'+(isEs?'GERENTE':'MANAGER')+'</div>';
+  html+='<div style="color:#fff;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:1px">'+managerName+'</div>';
+  if(storeName) html+='<div style="color:#666;font-size:12px;margin-top:3px">'+storeName+'</div>';
   html+='</div></div></div>';
 
-  // ── TABLE ──
+  /* TABLE */
   html+='<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
 
-  // Thead
+  /* THEAD */
   html+='<thead><tr style="background:#008C15">';
-  html+='<th style="width:160px;text-align:left;padding:12px 14px;color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:#005e0e">'+(isEs?'EMPLEADO':'EMPLOYEE')+'</th>';
+  html+='<th style="width:170px;text-align:left;padding:14px 16px;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:#005e0e;border-right:2px solid rgba(255,255,255,.2)">'+(isEs?'EMPLEADO':'EMPLOYEE')+'</th>';
   daysFull.forEach((day,i)=>{
-    html+='<th style="text-align:center;padding:12px 6px;color:#fff;font-weight:800;border-left:1px solid rgba(255,255,255,.15)">';
-    html+='<div style="font-size:14px;letter-spacing:.5px;text-transform:uppercase">'+day.substring(0,3).toUpperCase()+'</div>';
-    html+='<div style="font-size:14px;font-weight:800;margin-top:2px">'+day+'</div>';
-    html+='<div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">'+dates[i]+'</div>';
+    html+='<th style="text-align:center;padding:13px 8px;color:#fff;font-weight:800;border-left:1px solid rgba(255,255,255,.15)">';
+    html+='<div style="font-size:16px;font-weight:900;letter-spacing:.5px;text-transform:uppercase">'+day.toUpperCase()+'</div>';
+    html+='<div style="font-size:12px;font-weight:400;opacity:.75;margin-top:3px">'+dates[i]+'</div>';
     html+='</th>';
   });
   html+='</tr></thead>';
 
-  // Tbody
+  /* TBODY */
   html+='<tbody>';
   employees.forEach((emp,ri)=>{
     const isMgr=emp.isManagerRow;
     const rowBg=ri%2===0?'#f9fffa':'#ffffff';
-    html+='<tr style="background:'+rowBg+';border-bottom:1px solid #e0e0e0">';
-    // Name cell
-    html+='<td style="padding:12px 14px;'+(isMgr?'background:#fafdf8;border-left:4px solid #FFC600;':'background:#f4fcf5;border-left:3px solid #b0ddb0;')+'border-right:2px solid #d0e8d0">';
-    html+='<div style="font-size:14px;font-weight:800;color:#1a1a1a">'+emp.name+'</div>';
-    html+='<div style="font-size:10px;color:'+(isMgr?'#b38600':'#aaa')+';text-transform:uppercase;letter-spacing:.5px;margin-top:3px">'+(isMgr?'MANAGER':(rl[emp.role]||emp.role))+'</div>';
+    html+='<tr style="background:'+rowBg+';border-bottom:1px solid #e2e2e2">';
+    /* Name */
+    html+='<td style="padding:13px 16px;'+(isMgr?'background:#fafdf8;border-left:5px solid #FFC600;':'background:#f4fcf4;border-left:3px solid #a8d8a8;')+'border-right:2px solid #d0e8d0">';
+    html+='<div style="font-size:15px;font-weight:800;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+emp.name+'</div>';
+    html+='<div style="font-size:10px;color:'+(isMgr?'#b38600':'#aaa')+';text-transform:uppercase;letter-spacing:.8px;margin-top:3px">'+(isMgr?'MANAGER':(rl[emp.role]||emp.role))+'</div>';
     html+='</td>';
-    // Shift cells
+    /* Shifts */
     for(let di=0;di<7;di++){
       const val=schedData[emp.id+'_'+di]||'';
       const {bg,color}=cellBg(val);
-      html+='<td style="padding:8px 6px;text-align:center;border-left:1px solid #e8e8e8">';
-      html+='<div style="background:'+bg+';color:'+color+';padding:9px 4px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.3px;min-height:36px;display:flex;align-items:center;justify-content:center">'+(val||'<span style="color:#d0d0d0;font-size:12px">—</span>')+'</div>';
+      html+='<td style="padding:9px 7px;text-align:center;border-left:1px solid #e8e8e8">';
+      html+='<div style="background:'+bg+';color:'+color+';padding:10px 6px;border-radius:7px;font-size:15px;font-weight:700;letter-spacing:.3px;min-height:38px;display:flex;align-items:center;justify-content:center">';
+      html+=(val||'<span style="color:#d0d0d0;font-size:13px">—</span>')+'</div>';
       html+='</td>';
     }
     html+='</tr>';
   });
   html+='</tbody></table>';
 
-  // ── NOTES ──
+  /* NOTES */
   if(notes){
-    html+='<div style="padding:12px 18px;border-top:2px dashed #FFC600;background:#fffdf0">';
-    html+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#FFC600;font-weight:700;margin-bottom:5px">📝 '+notesTitle+'</div>';
-    html+='<div style="font-size:12px;color:#333;line-height:1.6">'+notes+'</div>';
+    html+='<div style="padding:13px 20px;border-top:2px dashed #FFC600;background:#fffdf0">';
+    html+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#FFC600;font-weight:700;margin-bottom:5px">📝 '+notesTitle+'</div>';
+    html+='<div style="font-size:13px;color:#333;line-height:1.6">'+notes+'</div>';
     html+='</div>';
   }
 
-  // ── STATS BAR ──
-  html+='<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:14px 24px;border-top:3px solid #FFC600">';
+  /* STATS */
+  html+='<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:16px 28px;border-top:3px solid #FFC600">';
   [{v:employees.length,l:isEs?'EMPLEADOS':'EMPLOYEES'},{v:totalShifts,l:isEs?'TURNOS ESTA SEMANA':'SHIFTS THIS WEEK'},{v:totalOff,l:isEs?'DÍAS LIBRES':'DAYS OFF'},{v:pct,l:isEs?'COBERTURA':'COVERAGE'}].forEach(s=>{
-    html+='<div style="text-align:center"><div style="color:#FFC600;font-size:26px;font-weight:900;line-height:1">'+s.v+'</div><div style="color:#555;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">'+s.l+'</div></div>';
+    html+='<div style="text-align:center">';
+    html+='<div style="color:#FFC600;font-size:30px;font-weight:900;line-height:1">'+s.v+'</div>';
+    html+='<div style="color:#555;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">'+s.l+'</div>';
+    html+='</div>';
   });
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:40px">';
+  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:46px">';
   html+='</div>';
   html+='</div>';
 
