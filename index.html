@@ -1920,163 +1920,62 @@ function adminDeleteSched(id,title,cardEl){
 let _schedBlob=null;
 
 async function openQRModal(){
-  const modal=document.getElementById('qrModal');modal.classList.add('on');
-  const st=document.getElementById('qrStatus'),prev=document.getElementById('qrPreview'),
-        wrap=document.getElementById('qrWrap'),steps=document.getElementById('qrSteps'),
-        dlBtn=document.getElementById('btnDlImg'),qrDiv=document.getElementById('qrCode');
-  st.className='qr-status';st.textContent=currentLang==='es'?'Preparando...':'Preparing...';
-  prev.style.display='none';wrap.style.display='none';steps.style.display='none';
-  dlBtn.style.display='none';qrDiv.innerHTML='';_schedBlob=null;
-  if(!employees.length){
-    st.textContent=currentLang==='es'?'⚠️ No hay empleados.':'⚠️ No employees in schedule.';
-    st.className='qr-status err';return;
+  const modal=document.getElementById('qrModal'); modal.classList.add('on');
+  const st=document.getElementById('qrStatus');
+  const prev=document.getElementById('qrPreview');
+  const wrap=document.getElementById('qrWrap');
+  const steps=document.getElementById('qrSteps');
+  const dlBtn=document.getElementById('btnDlImg');
+  const qrDiv=document.getElementById('qrCode');
+  st.className='qr-status'; st.textContent=currentLang==='es'?'Preparando...':'Preparing...';
+  prev.style.display='none'; wrap.style.display='none'; steps.style.display='none';
+  dlBtn.style.display='none'; qrDiv.innerHTML=''; _schedBlob=null;
+  const el=document.getElementById('schedWrap');
+  if(!el||el.style.display==='none'){
+    st.textContent=currentLang==='es'?'⚠️ No hay horario.':'⚠️ No schedule to capture.';
+    st.className='qr-status err'; return;
   }
-  const shareEl=buildShareElement();
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
-  offscreen.appendChild(shareEl);
+  const clone=el.cloneNode(true);
+  // Hide live preview in the clone (only print notes section)
+  const lp=clone.querySelector('#notesLivePreview'); if(lp) lp.style.display='none';
+  offscreen.appendChild(clone);
+  const origInps=Array.from(el.querySelectorAll('.shi'));
+  const cloneInps=Array.from(clone.querySelectorAll('.shi'));
+  origInps.forEach((inp,i)=>{ if(cloneInps[i]) cloneInps[i].value=inp.value; });
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
     st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
-    const canvas=await html2canvas(shareEl,{scale:2.8,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0,allowTaint:true});
+    const canvas=await html2canvas(clone,{scale:5,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0});
     document.body.removeChild(offscreen);
-    prev.src=canvas.toDataURL('image/png');prev.style.display='block';dlBtn.style.display='inline-flex';
+    const dataUrl=canvas.toDataURL('image/png');
+    prev.src=dataUrl; prev.style.display='block'; dlBtn.style.display='inline-flex';
     st.textContent=currentLang==='es'?'Subiendo...':'Uploading...';
     canvas.toBlob(async(blob)=>{
       _schedBlob=blob;
       const fname='sched_'+Date.now()+'.png';
       const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
-      if(error){st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Failed: ')+error.message;st.className='qr-status err';return;}
+      if(error){
+        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Failed: ')+error.message;
+        st.className='qr-status err'; return;
+      }
       const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
       const shareUrl=window.location.href.split('?')[0]+'?imgurl='+encodeURIComponent(ud.publicUrl);
       qrDiv.innerHTML='';
-      new QRCode(qrDiv,{text:shareUrl,width:188,height:188,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-      wrap.style.display='flex';steps.style.display='block';
+      new QRCode(qrDiv,{text:shareUrl,width:190,height:190,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      wrap.style.display='flex'; steps.style.display='block';
       st.textContent=currentLang==='es'?'✓ Listo — escanea el QR':'✓ Ready — scan the QR';
       st.className='qr-status ok';
     },'image/png');
   }catch(err){
-    if(document.body.contains(offscreen))document.body.removeChild(offscreen);
-    st.textContent='Error: '+err.message;st.className='qr-status err';
+    if(document.body.contains(offscreen)) document.body.removeChild(offscreen);
+    st.textContent='Error: '+err.message; st.className='qr-status err';
   }
 }
 
-function buildShareElement(){
-  const daysFull=DAYS[currentLang]||DAYS.en;
-  const dates=getDates();
-  const rl=ROLES[currentLang]||ROLES.en;
-  const isEs=currentLang==='es';
-  const title=document.getElementById('hdrTitle').textContent;
-  const managerName=document.getElementById('managerName').value.trim()||'—';
-  const storeName=document.getElementById('storeName').value.trim();
-  const weekLabel=document.getElementById('hdrWeek').textContent;
-  const noteEl=document.getElementById('notesEditor');
-  const notes=noteEl?noteEl.innerHTML.trim():'';
-  const notesTitle=document.getElementById('notesTitle').value;
 
-  let totalShifts=0,totalOff=0;
-  employees.forEach(emp=>{
-    for(let di=0;di<7;di++){
-      const v=(schedData[emp.id+'_'+di]||'').toLowerCase().trim();
-      if(v&&v!=='x') totalShifts++;
-      if(v==='off') totalOff++;
-    }
-  });
-  const pct=employees.length>0?Math.round((totalShifts/(employees.length*7))*100)+'%':'—';
-
-  const cellBg=(v)=>{
-    if(!v||v.trim()==='') return {bg:'#f0f0f0',color:'#ccc'};
-    const l=v.toLowerCase().trim();
-    if(l==='off') return {bg:'#ebebeb',color:'#999'};
-    if(l==='x') return {bg:'#f5f5f5',color:'#bbb'};
-    if(l==='training') return {bg:'#fff8e1',color:'#b38600'};
-    if(l.includes('close')) return {bg:'#fff0e6',color:'#cc5522'};
-    if(l==='open'||l.startsWith('open')) return {bg:'#e6f7e6',color:'#2a882a'};
-    return {bg:'#e8eeff',color:'#2244bb'};
-  };
-
-  /* ── 1600px wide — true landscape, matches phone horizontal view ── */
-  let html='<div style="width:1600px;font-family:Segoe UI,Arial,sans-serif;background:#fff;overflow:hidden">';
-
-  /* HEADER */
-  html+='<div style="background:#111;display:flex;align-items:stretch">';
-  html+='<div style="background:#FFC600;width:12px;flex-shrink:0"></div>';
-  html+='<div style="background:#008C15;width:12px;flex-shrink:0"></div>';
-  html+='<div style="flex:1;padding:18px 26px;display:flex;align-items:center;justify-content:space-between">';
-  html+='<div>';
-  html+='<div style="color:#FFC600;font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase;line-height:1">'+title+'</div>';
-  html+='<div style="color:#555;font-size:13px;margin-top:6px;letter-spacing:.5px">'+weekLabel+'</div>';
-  html+='</div>';
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:60px">';
-  html+='<div style="text-align:right">';
-  html+='<div style="color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">'+(isEs?'GERENTE':'MANAGER')+'</div>';
-  html+='<div style="color:#fff;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:1px">'+managerName+'</div>';
-  if(storeName) html+='<div style="color:#666;font-size:12px;margin-top:3px">'+storeName+'</div>';
-  html+='</div></div></div>';
-
-  /* TABLE */
-  html+='<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
-
-  /* THEAD */
-  html+='<thead><tr style="background:#008C15">';
-  html+='<th style="width:170px;text-align:left;padding:14px 16px;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:#005e0e;border-right:2px solid rgba(255,255,255,.2)">'+(isEs?'EMPLEADO':'EMPLOYEE')+'</th>';
-  daysFull.forEach((day,i)=>{
-    html+='<th style="text-align:center;padding:13px 8px;color:#fff;font-weight:800;border-left:1px solid rgba(255,255,255,.15)">';
-    html+='<div style="font-size:16px;font-weight:900;letter-spacing:.5px;text-transform:uppercase">'+day.toUpperCase()+'</div>';
-    html+='<div style="font-size:12px;font-weight:400;opacity:.75;margin-top:3px">'+dates[i]+'</div>';
-    html+='</th>';
-  });
-  html+='</tr></thead>';
-
-  /* TBODY */
-  html+='<tbody>';
-  employees.forEach((emp,ri)=>{
-    const isMgr=emp.isManagerRow;
-    const rowBg=ri%2===0?'#f9fffa':'#ffffff';
-    html+='<tr style="background:'+rowBg+';border-bottom:1px solid #e2e2e2">';
-    /* Name */
-    html+='<td style="padding:13px 16px;'+(isMgr?'background:#fafdf8;border-left:5px solid #FFC600;':'background:#f4fcf4;border-left:3px solid #a8d8a8;')+'border-right:2px solid #d0e8d0">';
-    html+='<div style="font-size:15px;font-weight:800;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+emp.name+'</div>';
-    html+='<div style="font-size:10px;color:'+(isMgr?'#b38600':'#aaa')+';text-transform:uppercase;letter-spacing:.8px;margin-top:3px">'+(isMgr?'MANAGER':(rl[emp.role]||emp.role))+'</div>';
-    html+='</td>';
-    /* Shifts */
-    for(let di=0;di<7;di++){
-      const val=schedData[emp.id+'_'+di]||'';
-      const {bg,color}=cellBg(val);
-      html+='<td style="padding:9px 7px;text-align:center;border-left:1px solid #e8e8e8">';
-      html+='<div style="background:'+bg+';color:'+color+';padding:10px 6px;border-radius:7px;font-size:15px;font-weight:700;letter-spacing:.3px;min-height:38px;display:flex;align-items:center;justify-content:center">';
-      html+=(val||'<span style="color:#d0d0d0;font-size:13px">—</span>')+'</div>';
-      html+='</td>';
-    }
-    html+='</tr>';
-  });
-  html+='</tbody></table>';
-
-  /* NOTES */
-  if(notes){
-    html+='<div style="padding:13px 20px;border-top:2px dashed #FFC600;background:#fffdf0">';
-    html+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#FFC600;font-weight:700;margin-bottom:5px">📝 '+notesTitle+'</div>';
-    html+='<div style="font-size:13px;color:#333;line-height:1.6">'+notes+'</div>';
-    html+='</div>';
-  }
-
-  /* STATS */
-  html+='<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:16px 28px;border-top:3px solid #FFC600">';
-  [{v:employees.length,l:isEs?'EMPLEADOS':'EMPLOYEES'},{v:totalShifts,l:isEs?'TURNOS ESTA SEMANA':'SHIFTS THIS WEEK'},{v:totalOff,l:isEs?'DÍAS LIBRES':'DAYS OFF'},{v:pct,l:isEs?'COBERTURA':'COVERAGE'}].forEach(s=>{
-    html+='<div style="text-align:center">';
-    html+='<div style="color:#FFC600;font-size:30px;font-weight:900;line-height:1">'+s.v+'</div>';
-    html+='<div style="color:#555;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">'+s.l+'</div>';
-    html+='</div>';
-  });
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:46px">';
-  html+='</div>';
-  html+='</div>';
-
-  const wrapper=document.createElement('div');
-  wrapper.innerHTML=html;
-  return wrapper.firstElementChild;
-}
 function closeQRModal(){ document.getElementById('qrModal').classList.remove('on'); document.getElementById('qrCode').innerHTML=''; _schedBlob=null; }
 function downloadSchedImg(){
   if(!_schedBlob) return;
