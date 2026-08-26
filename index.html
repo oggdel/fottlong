@@ -1936,10 +1936,10 @@ async function openQRModal(){
   }
 
   const offscreen=document.createElement('div');
-  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:2400px;background:#fff;z-index:-999;pointer-events:none';
+  offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:4000px;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
-  clone.style.cssText='width:2400px;min-width:2400px;';
+  clone.style.cssText='width:4000px;min-width:4000px;';
   offscreen.appendChild(clone);
 
   // Copy input values
