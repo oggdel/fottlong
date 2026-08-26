@@ -1974,6 +1974,7 @@ function buildShareElement(){
   const noteEl=document.getElementById('notesEditor');
   const notes=noteEl?noteEl.innerHTML.trim():'';
   const notesTitle=document.getElementById('notesTitle').value;
+
   let totalShifts=0,totalOff=0;
   employees.forEach(emp=>{
     for(let di=0;di<7;di++){
@@ -1983,69 +1984,87 @@ function buildShareElement(){
     }
   });
   const pct=employees.length>0?Math.round((totalShifts/(employees.length*7))*100)+'%':'—';
-  const cellStyle=(v)=>{
-    if(!v) return 'background:#f4f4f4;color:#ccc';
+
+  const cellBg=(v)=>{
+    if(!v||v.trim()==='') return {bg:'#f0f0f0',color:'#bbb'};
     const l=v.toLowerCase().trim();
-    if(l==='off') return 'background:#eeeeee;color:#999';
-    if(l==='x') return 'background:#f5f5f5;color:#ccc';
-    if(l==='training') return 'background:#fff8e1;color:#b38600';
-    if(l.includes('close')) return 'background:#fff0e6;color:#cc5522';
-    if(l==='open'||l.startsWith('open')) return 'background:#e6f7e6;color:#2a882a';
-    return 'background:#e6f0ff;color:#1a55cc';
+    if(l==='off') return {bg:'#ebebeb',color:'#999'};
+    if(l==='x') return {bg:'#f5f5f5',color:'#bbb'};
+    if(l==='training') return {bg:'#fff8e1',color:'#b38600'};
+    if(l.includes('close')) return {bg:'#fff0e6',color:'#cc5522'};
+    if(l==='open'||l.startsWith('open')) return {bg:'#e6f7e6',color:'#2a882a'};
+    return {bg:'#e8eeff',color:'#2244bb'};
   };
-  const renderGroup=(dayIndices,headerBg)=>{
-    let h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
-    h+='<thead><tr style="background:'+headerBg+'">';
-    h+='<th style="width:130px;text-align:left;padding:10px 12px;color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:#005e0e">'+(isEs?'EMPLEADO':'EMPLOYEE')+'</th>';
-    dayIndices.forEach(di=>{
-      const shortDay=daysFull[di].substring(0,3).toUpperCase();
-      h+='<th style="text-align:center;padding:9px 4px;color:#fff;font-size:11px;font-weight:800;border-left:1px solid rgba(255,255,255,.15);letter-spacing:.5px">'+shortDay+'<br><span style="font-size:10px;font-weight:400;opacity:.8">'+dates[di]+'</span></th>';
-    });
-    h+='</tr></thead><tbody>';
-    employees.forEach((emp,ri)=>{
-      const isMgr=emp.isManagerRow;
-      const rowBg=ri%2===0?'#fafffe':'#ffffff';
-      h+='<tr style="background:'+rowBg+';border-bottom:1px solid #e8e8e8">';
-      h+='<td style="padding:9px 10px;'+(isMgr?'background:#fafdf8;border-left:3px solid #FFC600;':'background:#f5fdf5;border-left:2px solid #c5e8c5;')+'border-right:1px solid #ddd">';
-      h+='<div style="font-size:12px;font-weight:800;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+emp.name+'</div>';
-      h+='<div style="font-size:9px;color:'+(isMgr?'#b38600':'#aaa')+';text-transform:uppercase;letter-spacing:.4px;margin-top:2px">'+(isMgr?'MANAGER':(rl[emp.role]||emp.role))+'</div>';
-      h+='</td>';
-      dayIndices.forEach(di=>{
-        const val=schedData[emp.id+'_'+di]||'';
-        const cs=cellStyle(val);
-        h+='<td style="padding:6px 4px;text-align:center;border-left:1px solid #eee">';
-        h+='<div style="'+cs+';padding:5px 3px;border-radius:5px;font-size:12px;font-weight:700;letter-spacing:.3px;min-height:28px;display:flex;align-items:center;justify-content:center">'+(val||'—')+'</div>';
-        h+='</td>';
-      });
-      h+='</tr>';
-    });
-    h+='</tbody></table>';
-    return h;
-  };
-  let html='<div style="width:720px;background:#fff;font-family:Segoe UI,Arial,sans-serif;overflow:hidden">';
-  html+='<div style="background:#111;display:flex;align-items:center;justify-content:space-between;padding:15px 20px">';
-  html+='<div><div style="color:#FFC600;font-size:17px;font-weight:900;letter-spacing:1px;text-transform:uppercase;line-height:1.2">'+title+'</div>';
-  html+='<div style="color:#555;font-size:10px;margin-top:4px">'+weekLabel+'</div></div>';
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:42px">';
-  html+='<div style="text-align:right"><div style="color:#777;font-size:9px;text-transform:uppercase;letter-spacing:1px">'+(isEs?'GERENTE':'MANAGER')+'</div>';
-  html+='<div style="color:#fff;font-size:14px;font-weight:800;margin-top:2px">'+managerName+'</div>';
-  if(storeName) html+='<div style="color:#666;font-size:10px;margin-top:1px">'+storeName+'</div>';
-  html+='</div></div>';
-  html+='<div style="height:4px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)"></div>';
-  html+=renderGroup([0,1,2,3],'#008C15');
-  html+='<div style="height:5px;background:linear-gradient(90deg,#FFC600,#008C15)"></div>';
-  html+=renderGroup([4,5,6],'#007010');
-  if(notes){
-    html+='<div style="padding:10px 14px;border-top:2px dashed #FFC600;background:#fffdf0">';
-    html+='<div style="font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:#FFC600;font-weight:700;margin-bottom:3px">📝 '+notesTitle+'</div>';
-    html+='<div style="font-size:11px;color:#333;line-height:1.5">'+notes+'</div></div>';
-  }
-  html+='<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:13px 18px;border-top:3px solid #FFC600">';
-  [{v:employees.length,l:isEs?'EMPLEADOS':'EMPLOYEES'},{v:totalShifts,l:isEs?'TURNOS':'SHIFTS'},{v:totalOff,l:isEs?'DÍAS LIBRES':'DAYS OFF'},{v:pct,l:isEs?'COBERTURA':'COVERAGE'}].forEach(s=>{
-    html+='<div style="text-align:center"><div style="color:#FFC600;font-size:22px;font-weight:900;line-height:1">'+s.v+'</div><div style="color:#444;font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-top:3px">'+s.l+'</div></div>';
+
+  // ── HEADER ──
+  let html='<div style="width:1320px;font-family:Segoe UI,Arial,sans-serif;background:#fff;overflow:hidden">';
+  html+='<div style="background:#111;display:flex;align-items:stretch">';
+  html+='<div style="background:#FFC600;width:10px;flex-shrink:0"></div>';
+  html+='<div style="background:#008C15;width:10px;flex-shrink:0"></div>';
+  html+='<div style="flex:1;padding:16px 22px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div><div style="color:#FFC600;font-size:22px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase">'+title+'</div>';
+  html+='<div style="color:#666;font-size:12px;margin-top:5px">'+weekLabel+'</div></div>';
+  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:52px">';
+  html+='<div style="text-align:right"><div style="color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">'+(isEs?'GERENTE':'MANAGER')+'</div>';
+  html+='<div style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase">'+managerName+'</div>';
+  if(storeName) html+='<div style="color:#777;font-size:11px;margin-top:2px">'+storeName+'</div>';
+  html+='</div></div></div>';
+
+  // ── TABLE ──
+  html+='<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
+
+  // Thead
+  html+='<thead><tr style="background:#008C15">';
+  html+='<th style="width:160px;text-align:left;padding:12px 14px;color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:#005e0e">'+(isEs?'EMPLEADO':'EMPLOYEE')+'</th>';
+  daysFull.forEach((day,i)=>{
+    html+='<th style="text-align:center;padding:12px 6px;color:#fff;font-weight:800;border-left:1px solid rgba(255,255,255,.15)">';
+    html+='<div style="font-size:14px;letter-spacing:.5px;text-transform:uppercase">'+day.substring(0,3).toUpperCase()+'</div>';
+    html+='<div style="font-size:14px;font-weight:800;margin-top:2px">'+day+'</div>';
+    html+='<div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">'+dates[i]+'</div>';
+    html+='</th>';
   });
-  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:34px">';
-  html+='</div></div>';
+  html+='</tr></thead>';
+
+  // Tbody
+  html+='<tbody>';
+  employees.forEach((emp,ri)=>{
+    const isMgr=emp.isManagerRow;
+    const rowBg=ri%2===0?'#f9fffa':'#ffffff';
+    html+='<tr style="background:'+rowBg+';border-bottom:1px solid #e0e0e0">';
+    // Name cell
+    html+='<td style="padding:12px 14px;'+(isMgr?'background:#fafdf8;border-left:4px solid #FFC600;':'background:#f4fcf5;border-left:3px solid #b0ddb0;')+'border-right:2px solid #d0e8d0">';
+    html+='<div style="font-size:14px;font-weight:800;color:#1a1a1a">'+emp.name+'</div>';
+    html+='<div style="font-size:10px;color:'+(isMgr?'#b38600':'#aaa')+';text-transform:uppercase;letter-spacing:.5px;margin-top:3px">'+(isMgr?'MANAGER':(rl[emp.role]||emp.role))+'</div>';
+    html+='</td>';
+    // Shift cells
+    for(let di=0;di<7;di++){
+      const val=schedData[emp.id+'_'+di]||'';
+      const {bg,color}=cellBg(val);
+      html+='<td style="padding:8px 6px;text-align:center;border-left:1px solid #e8e8e8">';
+      html+='<div style="background:'+bg+';color:'+color+';padding:9px 4px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.3px;min-height:36px;display:flex;align-items:center;justify-content:center">'+(val||'<span style="color:#d0d0d0;font-size:12px">—</span>')+'</div>';
+      html+='</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+
+  // ── NOTES ──
+  if(notes){
+    html+='<div style="padding:12px 18px;border-top:2px dashed #FFC600;background:#fffdf0">';
+    html+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#FFC600;font-weight:700;margin-bottom:5px">📝 '+notesTitle+'</div>';
+    html+='<div style="font-size:12px;color:#333;line-height:1.6">'+notes+'</div>';
+    html+='</div>';
+  }
+
+  // ── STATS BAR ──
+  html+='<div style="background:#0d0d0d;display:flex;align-items:center;justify-content:space-around;padding:14px 24px;border-top:3px solid #FFC600">';
+  [{v:employees.length,l:isEs?'EMPLEADOS':'EMPLOYEES'},{v:totalShifts,l:isEs?'TURNOS ESTA SEMANA':'SHIFTS THIS WEEK'},{v:totalOff,l:isEs?'DÍAS LIBRES':'DAYS OFF'},{v:pct,l:isEs?'COBERTURA':'COVERAGE'}].forEach(s=>{
+    html+='<div style="text-align:center"><div style="color:#FFC600;font-size:26px;font-weight:900;line-height:1">'+s.v+'</div><div style="color:#555;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">'+s.l+'</div></div>';
+  });
+  html+='<img src="https://i.postimg.cc/3R6mcvn2/Subway-logo.png" style="height:40px">';
+  html+='</div>';
+  html+='</div>';
+
   const wrapper=document.createElement('div');
   wrapper.innerHTML=html;
   return wrapper.firstElementChild;
