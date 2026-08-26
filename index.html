@@ -1934,11 +1934,10 @@ async function openQRModal(){
 
   const el=document.getElementById('schedWrap');
   if(!el||el.style.display==='none'){
-    st.textContent=currentLang==='es'?'⚠️ No hay horario para capturar.':'⚠️ No schedule to capture.';
+    st.textContent=currentLang==='es'?'⚠️ No hay horario.':'⚠️ No schedule to capture.';
     st.className='qr-status err'; return;
   }
 
-  // Clone and enlarge everything for a clear readable photo
   const offscreen=document.createElement('div');
   offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
@@ -1950,45 +1949,82 @@ async function openQRModal(){
     const ci=clone.querySelectorAll('.shi')[i]; if(ci) ci.value=inp.value;
   });
 
-  // Make everything BIGGER and readable
-  const style=document.createElement('style');
-  style.textContent=`
-    .shi { font-size:18px !important; padding:10px 6px !important; font-weight:700 !important; }
-    table.st thead th { font-size:15px !important; padding:14px 8px !important; }
-    table.st thead th .thd { font-size:17px !important; }
-    table.st thead th .thdt { font-size:13px !important; }
-    table.st tbody td { padding:10px 6px !important; min-width:130px !important; }
-    table.st tbody td:first-child { padding:12px 16px !important; min-width:180px !important; }
-    .enw { gap:4px !important; }
-    .enw span:first-child { font-size:17px !important; font-weight:800 !important; }
-    .erl { font-size:12px !important; }
-    .sh-ttl h2 { font-size:22px !important; }
-    .sh-ttl .wl { font-size:14px !important; }
-    .sh-r .mn { font-size:18px !important; }
-    .sh-r .ml { font-size:12px !important; }
-    .sh-r .sn { font-size:13px !important; }
-    .tstat .tv { font-size:26px !important; }
-    .tstat .tl { font-size:11px !important; }
-    .totbar { padding:16px 26px !important; }
-  `;
-  clone.appendChild(style);
+  /* ── Agrandar TODO directamente con inline styles ── */
+
+  // Shift inputs — más grandes y legibles
+  clone.querySelectorAll('.shi').forEach(el=>{
+    el.style.fontSize='22px';
+    el.style.fontWeight='800';
+    el.style.padding='14px 8px';
+    el.style.minWidth='150px';
+    el.style.borderRadius='8px';
+  });
+
+  // Header columns (days)
+  clone.querySelectorAll('thead th').forEach((th,i)=>{
+    th.style.padding='18px 10px';
+    th.style.fontSize='14px';
+    const thd=th.querySelector('.thd');
+    if(thd){ thd.style.fontSize='20px'; thd.style.fontWeight='900'; }
+    const thdt=th.querySelector('.thdt');
+    if(thdt){ thdt.style.fontSize='15px'; }
+  });
+
+  // Employee name cells
+  clone.querySelectorAll('tbody td:first-child').forEach(td=>{
+    td.style.padding='16px 20px';
+    td.style.minWidth='200px';
+    const spans=td.querySelectorAll('span, div');
+    spans.forEach(s=>{ if(s.classList.contains('erl')){ s.style.fontSize='13px'; } });
+    const enw=td.querySelector('.enw');
+    if(enw){
+      const name=enw.querySelector('span:first-child, div:first-child');
+      if(name){ name.style.fontSize='20px'; name.style.fontWeight='900'; }
+    }
+  });
+
+  // Schedule header
+  const h2=clone.querySelector('.sh-ttl h2');
+  if(h2){ h2.style.fontSize='28px'; h2.style.fontWeight='900'; }
+  const wl=clone.querySelector('.sh-ttl .wl');
+  if(wl){ wl.style.fontSize='16px'; }
+  const mn=clone.querySelector('.sh-r .mn');
+  if(mn){ mn.style.fontSize='22px'; mn.style.fontWeight='900'; }
+  const ml=clone.querySelector('.sh-r .ml');
+  if(ml){ ml.style.fontSize='13px'; }
+  const sn=clone.querySelector('.sh-r .sn');
+  if(sn){ sn.style.fontSize='14px'; }
+
+  // Stats bar
+  clone.querySelectorAll('.tstat .tv').forEach(el=>{ el.style.fontSize='32px'; el.style.fontWeight='900'; });
+  clone.querySelectorAll('.tstat .tl').forEach(el=>{ el.style.fontSize='13px'; el.style.letterSpacing='1.5px'; });
+  const totbar=clone.querySelector('.totbar');
+  if(totbar){ totbar.style.padding='20px 30px'; }
+
+  // Logo bigger
+  clone.querySelectorAll('img').forEach(img=>{
+    if(img.src && img.src.includes('Subway')) img.style.height='60px';
+  });
+
+  // Data rows — more height
+  clone.querySelectorAll('tbody tr').forEach(tr=>{ tr.style.height='60px'; });
 
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
-    st.textContent=currentLang==='es'?'Capturando en alta calidad...':'Capturing in high quality...';
+    st.textContent=currentLang==='es'?'Capturando...':'Capturing...';
     const canvas=await html2canvas(clone,{
       scale:3,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:0
     });
     document.body.removeChild(offscreen);
-    const dataUrl=canvas.toDataURL('image/png');
-    prev.src=dataUrl; prev.style.display='block'; dlBtn.style.display='inline-flex';
-    st.textContent=currentLang==='es'?'Subiendo imagen...':'Uploading image...';
+    prev.src=canvas.toDataURL('image/png');
+    prev.style.display='block'; dlBtn.style.display='inline-flex';
+    st.textContent=currentLang==='es'?'Subiendo...':'Uploading...';
     canvas.toBlob(async(blob)=>{
       _schedBlob=blob;
       const fname='sched_'+Date.now()+'.png';
       const {data,error}=await sb.storage.from('schedule-images').upload(fname,blob,{contentType:'image/png',upsert:false});
       if(error){
-        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Upload failed: ')+error.message;
+        st.textContent=(currentLang==='es'?'⚠️ Error: ':'⚠️ Failed: ')+error.message;
         st.className='qr-status err'; return;
       }
       const {data:ud}=sb.storage.from('schedule-images').getPublicUrl(fname);
