@@ -1127,8 +1127,10 @@ async function doLogin(){
   errEl.textContent='';
   if(!user||!pass){ errEl.textContent=tr('lbl_un')+' / '+tr('lbl_pw')+' required'; return; }
   const hash=await sha256(pass);
-  const {data,error}=await sb.from('sw_users').select('*').eq('username',user).eq('password_hash',hash).single();
-  if(error||!data){ errEl.textContent=currentLang==='es'?'Usuario o contraseña incorrectos.':'Incorrect username or password.'; return; }
+  const {data,error}=await sb.from('sw_users').select('*').eq('username',user).single();
+  if(error&&error.code==='PGRST116'){ errEl.textContent=currentLang==='es'?'Usuario o contraseña incorrectos.':'Incorrect username or password.'; return; }
+  if(error){ errEl.textContent='Error: '+error.message; return; }
+  if(!data||data.password_hash!==hash){ errEl.textContent=currentLang==='es'?'Usuario o contraseña incorrectos.':'Incorrect username or password.'; return; }
   session={id:data.id,username:data.username,firstName:data.first_name,lastName:data.last_name,role:data.role};
   sessionStorage.setItem('sw_session',JSON.stringify(session));
   showDash();
@@ -1939,7 +1941,6 @@ async function openQRModal(){
   offscreen.style.cssText='position:fixed;left:-99999px;top:0;width:max-content;background:#fff;z-index:-999;pointer-events:none';
   document.body.appendChild(offscreen);
   const clone=el.cloneNode(true);
-  clone.style.cssText='';
   offscreen.appendChild(clone);
 
   // Copy input values
@@ -1947,62 +1948,55 @@ async function openQRModal(){
     const ci=clone.querySelectorAll('.shi')[i];if(ci)ci.value=inp.value;
   });
 
-  // Table fills full width, no clipping
-  const tbl=clone.querySelector('table.st');
-  if(tbl){
-    tbl.style.width='100%';
-    tbl.style.tableLayout='fixed';
-    tbl.style.fontSize='26px';
-  }
-
-  // Shift inputs — big, centered, no overflow
-  clone.querySelectorAll('.shi').forEach(el=>{
-    el.style.fontSize='26px';
-    el.style.fontWeight='700';
-    el.style.padding='55px 10px';
-    el.style.width='100%';
-    el.style.boxSizing='border-box';
-    el.style.textAlign='center';
+  // Make every row tall to get a square aspect ratio
+  const ROW_H = '130px';
+  clone.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.style.height = ROW_H;
+  });
+  clone.querySelectorAll('thead tr').forEach(tr=>{
+    tr.style.height = '90px';
   });
 
-  // Day headers
+  // All cells: center content, no overflow
+  clone.querySelectorAll('tbody td').forEach(td=>{
+    td.style.verticalAlign = 'middle';
+    td.style.padding = '0 8px';
+  });
   clone.querySelectorAll('thead th').forEach(th=>{
-    th.style.padding='44px 12px';
-    th.style.fontSize='22px';
-    th.style.overflow='hidden';
-    const thd=th.querySelector('.thd');
-    if(thd){thd.style.fontSize='22px';thd.style.fontWeight='900';thd.style.whiteSpace='nowrap';}
-    const thdt=th.querySelector('.thdt');
-    if(thdt){thdt.style.fontSize='17px';thdt.style.marginTop='6px';}
+    th.style.verticalAlign = 'middle';
+    th.style.padding = '0 8px';
   });
 
-  // Employee name column — wide enough, no clipping
+  // Bigger fonts
+  clone.querySelectorAll('.shi').forEach(inp=>{
+    inp.style.fontSize = '22px';
+    inp.style.fontWeight = '700';
+    inp.style.padding = '0';
+    inp.style.height = '80px';
+    inp.style.lineHeight = '80px';
+    inp.style.width = '100%';
+    inp.style.textAlign = 'center';
+    inp.style.border = 'none';
+    inp.style.background = 'transparent';
+  });
+
+  clone.querySelectorAll('.thd').forEach(el=>{ el.style.fontSize='22px'; el.style.fontWeight='900'; });
+  clone.querySelectorAll('.thdt').forEach(el=>{ el.style.fontSize='16px'; el.style.marginTop='6px'; });
+
   clone.querySelectorAll('tbody td:first-child').forEach(td=>{
-    td.style.padding='55px 20px';
-    td.style.width='260px';
-    td.style.minWidth='260px';
-    td.style.overflow='hidden';
-    const enw=td.querySelector('.enw');
-    if(enw){
-      const nameEl=enw.children[0];
-      if(nameEl){nameEl.style.fontSize='22px';nameEl.style.fontWeight='800';nameEl.style.whiteSpace='nowrap';nameEl.style.overflow='hidden';nameEl.style.textOverflow='ellipsis';}
-      const roleEl=enw.children[1];
-      if(roleEl){roleEl.style.fontSize='14px';roleEl.style.marginTop='5px';}
-    }
+    td.style.padding = '0 16px';
+    const nameEl = td.querySelector('.enw span:first-child, .enw div:first-child');
+    if(nameEl){ nameEl.style.fontSize='20px'; nameEl.style.fontWeight='800'; }
+    const roleEl = td.querySelector('.erl');
+    if(roleEl){ roleEl.style.fontSize='13px'; roleEl.style.marginTop='4px'; }
   });
 
-  // Schedule header text
-  const h2=clone.querySelector('.sh-ttl h2');if(h2){h2.style.fontSize='30px';h2.style.fontWeight='900';}
-  const wl=clone.querySelector('.sh-ttl .wl');if(wl){wl.style.fontSize='16px';wl.style.marginTop='6px';}
-  const mn=clone.querySelector('.sh-r .mn');if(mn){mn.style.fontSize='24px';mn.style.fontWeight='900';}
-  const ml=clone.querySelector('.sh-r .ml');if(ml)ml.style.fontSize='13px';
-  const sn=clone.querySelector('.sh-r .sn');if(sn)sn.style.fontSize='15px';
-  const logo=clone.querySelector('.sh-in img');if(logo)logo.style.height='56px';
+  const h2=clone.querySelector('.sh-ttl h2');if(h2){h2.style.fontSize='28px';h2.style.fontWeight='900';}
+  const wl=clone.querySelector('.sh-ttl .wl');if(wl)wl.style.fontSize='15px';
+  const mn=clone.querySelector('.sh-r .mn');if(mn){mn.style.fontSize='22px';mn.style.fontWeight='900';}
 
-  // Stats bar
-  clone.querySelectorAll('.tstat .tv').forEach(el=>{el.style.fontSize='30px';el.style.fontWeight='900';});
-  clone.querySelectorAll('.tstat .tl').forEach(el=>{el.style.fontSize='13px';el.style.letterSpacing='1.5px';});
-  const totbar=clone.querySelector('.totbar');if(totbar)totbar.style.padding='34px 30px';
+  clone.querySelectorAll('.tstat .tv').forEach(el=>{el.style.fontSize='28px';el.style.fontWeight='900';});
+  clone.querySelectorAll('.tstat .tl').forEach(el=>el.style.fontSize='12px');
 
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   try{
