@@ -299,70 +299,45 @@ table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
 .rb-training{background:#fff1e6;color:#c2410c;border:none}
 
 @media print{
-  #notesLivePreview{display:none !important}
-  .notes-live-preview{display:none !important}
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
-  body{background:#fff !important}
-  #langBtn,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.totbar,.legbar,.toast,.ctx,.empty-st{display:none !important}
-  #editorScreen{display:flex !important;position:static !important}
-  .mwrap{display:block !important}
-  .content{padding:0 !important}
-  .sw{box-shadow:none !important;border-radius:0 !important;min-width:0 !important;width:100% !important}
-  .sh{background:#000 !important}
-  .sh-y,.sh-g{background:#000 !important;width:5px !important}
-  .sh-ttl h2{font-size:15px !important;color:#fff !important}
-  .sh-ttl .wl{color:#ccc !important;font-size:10px !important}
-  .sh-r .mn{color:#fff !important}.sh-r .ml,.sh-r .sn{color:#aaa !important}
-  table.st{font-size:11px !important}
-  table.st thead th{padding:7px 5px !important;font-size:10px !important;background:#222 !important;color:#fff !important}
-  table.st thead th:first-child{background:#000 !important}
-  table.st tbody td{padding:7px 4px !important;min-width:0 !important;border-right:1px solid #ccc !important;border-bottom:1px solid #ddd !important}
-  table.st tbody td:first-child{background:#f2f2f2 !important;border-right:2px solid #888 !important}
-  .shi{border:1px solid #bbb !important;font-size:11px !important;padding:5px 3px !important;min-width:0 !important;font-weight:700 !important;background:#fff !important;color:#000 !important}
-  .sh-open{background:#eee !important;color:#000 !important;border-color:#999 !important}
-  .sh-off{background:#f8f8f8 !important;color:#888 !important}
-  .sh-close{background:#e8e8e8 !important;color:#000 !important}
-  .sh-mid{background:#efefef !important;color:#000 !important}
-  .sh-training{background:#f0f0f0 !important;color:#000 !important;font-style:italic !important}
-  .broadcast-banner,#adminEditBanner,.undo-toast,#qrModal,#broadcastModal,.my-scheds-overlay,#liveViewScreen,#msvScreen,.admin-editing-bar,.notes-live-preview{display:none !important}
-  table.st thead th .thd{font-size:13px !important;font-weight:900 !important;color:#fff !important;letter-spacing:.8px !important}
-  table.st thead th .thdt{font-size:13px !important;font-weight:800 !important;color:#FFC600 !important;margin-top:3px !important}
-  table.st thead th{border-bottom:3px solid #008C15 !important}
-  table.st tbody td:first-child{font-size:13px !important;color:#000 !important}
-  .erl,.erl-full,.erl-part,.erl-manager,.erl-training{background:#e8e8e8 !important;color:#222 !important;border:1px solid #aaa !important}
-  .pnotes{display:block !important}
   @page{size:landscape;margin:0}
-  html,body{width:100vw !important;height:100vh !important;overflow:hidden !important}
-  #editorScreen{display:block !important;position:fixed !important;inset:0 !important;width:100vw !important;height:100vh !important}
+  html,body{margin:0 !important;width:100vw !important;height:100vh !important;overflow:hidden !important;background:#fff !important}
+  #langBtn,#splash,#loginScreen,#dashScreen,#adminScreen,.ov,#cfm,.etb,.sidebar,.toast,.ctx,.empty-st,.broadcast-banner,#adminEditBanner,.undo-toast,#qrModal,#broadcastModal,.my-scheds-overlay,#liveViewScreen,#msvScreen,.admin-editing-bar,.notes-live-preview,#notesLivePreview{display:none !important}
+  #editorScreen{display:block !important;position:fixed !important;inset:0 !important;width:100vw !important;height:100vh !important;background:#fff !important}
   .mwrap{display:block !important;height:100vh !important;overflow:hidden !important}
-  .content{padding:4vh 4vw !important;height:100vh !important;overflow:hidden !important}
-  .sw{display:flex !important;flex-direction:column !important;width:100% !important;height:100% !important;min-width:0 !important;overflow:hidden !important}
+  .content{padding:2.5vh 2.5vw !important;height:100vh !important;overflow:hidden !important;background:#fff !important}
+  .sw{display:flex !important;flex-direction:column !important;width:100% !important;height:100% !important;min-width:0 !important;overflow:hidden !important;box-shadow:none !important}
   .sh{flex:0 0 auto !important}
-  .sh-in{padding:1.2vh 2vw !important}
+  .sh-in{padding:1.4vh 2vw !important}
   .sh img{height:4.5vh !important}
   .sh-ttl h2{font-size:3vh !important}
   .sh-ttl .wl{font-size:1.7vh !important}
-  .sh-r .ml{font-size:1.3vh !important}
+  .sh-r .ml{font-size:1.2vh !important}
   .sh-r .mn{font-size:2.4vh !important}
   .sh-r .sn{font-size:1.4vh !important}
   .sw > div[style*="overflow-x"]{flex:1 1 auto !important;min-height:0 !important;overflow:hidden !important;display:flex !important}
   table.st{width:100% !important;height:100% !important;table-layout:fixed !important}
-  table.st thead th{padding:.8vh .3vw !important}
-  table.st thead th:first-child{width:15% !important;font-size:2vh !important}
-  table.st thead th .thd{font-size:min(1.9vh,1.15vw) !important;letter-spacing:0 !important;white-space:nowrap !important}
+  table.st thead th{padding:1vh .3vw !important}
+  table.st thead th:first-child{width:14% !important;font-size:1.3vh !important}
+  table.st thead th .thd{font-size:min(2vh,1.25vw) !important;letter-spacing:0 !important;white-space:nowrap !important}
   table.st thead th .thdt{font-size:min(2.1vh,1.35vw) !important;letter-spacing:0 !important}
-  table.st tbody td{padding:.3vh .3vw !important;height:auto !important}
-  table.st tbody td:first-child{font-size:2vh !important}
-  .erl{font-size:1.1vh !important;padding:.2vh .6vw !important}
+  table.st tbody td{padding:.3vh .3vw !important;min-width:0 !important}
+  table.st tbody td:first-child{font-size:2vh !important;padding-left:1vw !important}
+  .erl{font-size:1.1vh !important;padding:.25vh .7vw !important}
   .shi{display:none !important}
-  .shp{display:flex !important;align-items:center;justify-content:center;text-align:center;width:100%;min-height:4vh;padding:.4vh .3vw;border:1px solid #999;border-radius:.8vh;font-weight:800;font-size:min(1.8vh,1.2vw);line-height:1.15;word-break:break-word;color:#000;background:#fff}
-  .shp:empty{border-color:transparent !important;background:transparent !important}
-  .pnotes:has(.pnotes-txt:empty){display:none !important}
-  .pnotes{flex:0 0 auto !important;padding:.8vh 1.5vw !important}
-  .pnotes-lbl{font-size:1.6vh !important}
-  .pnotes-txt{font-size:2vh !important}
+  .shp{display:flex !important;align-items:center;justify-content:center;text-align:center;width:100%;min-height:4vh;padding:.4vh .3vw;border:1px solid transparent;border-radius:.9vh;font-weight:700;font-size:min(1.8vh,1.2vw);line-height:1.15;word-break:break-word}
+  .shp:empty{background:transparent !important;border-color:transparent !important}
   tr{break-inside:avoid !important;page-break-inside:avoid !important}
-  html,body{margin:0 !important}
+  .pnotes{display:block !important;flex:0 0 auto !important;max-height:22vh !important;overflow:hidden !important;padding:1vh 1.5vw !important;border-top:2px solid #FFC600 !important;background:#fffdf0 !important}
+  .pnotes:has(.pnotes-txt:empty){display:none !important}
+  .pnotes-lbl{font-size:1.4vh !important;color:#666 !important}
+  .pnotes-txt{font-size:2vh !important;line-height:1.5 !important}
+  .totbar{flex:0 0 auto !important;padding:.9vh 2vw !important}
+  .tstat .tv{font-size:2.8vh !important}
+  .tstat .tl{font-size:1.1vh !important}
+  .totbar img{height:3.5vh !important}
+  .legbar{flex:0 0 auto !important;padding:.8vh 1.5vw !important;font-size:1.3vh !important}
+  .lh{font-size:1.2vh !important}
 }
 
 /* ── LANG BTN — bottom left ── */
