@@ -268,6 +268,7 @@ table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
 .erl-manager{background:#fff6d6;color:#8a6500}
 .erl-training{background:#fff1e6;color:#c2410c}
 .shi{border-radius:9px;border:1px solid transparent;padding:11px 6px;font-size:14px;font-weight:700;letter-spacing:.2px}
+.shp{display:none}
 .shi:hover{background:#f6fbf7;border-color:#008C15}
 .shi:focus{background:#fff;border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,.12)}
 .sh-open{background:#ecfdf3;color:#067647;border-color:#abefc6 !important}
@@ -330,9 +331,37 @@ table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
   table.st tbody td:first-child{font-size:13px !important;color:#000 !important}
   .erl,.erl-full,.erl-part,.erl-manager,.erl-training{background:#e8e8e8 !important;color:#222 !important;border:1px solid #aaa !important}
   .pnotes{display:block !important}
-  @page{size:letter landscape;margin:.5cm 1cm}
-  .sh,table.st tr{break-inside:avoid;page-break-inside:avoid}
-  .sw{width:100% !important}
+  @page{size:landscape;margin:0}
+  html,body{width:100vw !important;height:100vh !important;overflow:hidden !important}
+  #editorScreen{display:block !important;position:fixed !important;inset:0 !important;width:100vw !important;height:100vh !important}
+  .mwrap{display:block !important;height:100vh !important;overflow:hidden !important}
+  .content{padding:1vh 1vw !important;height:100vh !important;overflow:hidden !important}
+  .sw{display:flex !important;flex-direction:column !important;width:100% !important;height:100% !important;min-width:0 !important;overflow:hidden !important}
+  .sh{flex:0 0 auto !important}
+  .sh-in{padding:1.2vh 2vw !important}
+  .sh img{height:6vh !important}
+  .sh-ttl h2{font-size:4vh !important}
+  .sh-ttl .wl{font-size:2.2vh !important}
+  .sh-r .ml{font-size:1.6vh !important}
+  .sh-r .mn{font-size:3.2vh !important}
+  .sh-r .sn{font-size:1.8vh !important}
+  .sw > div[style*="overflow-x"]{flex:1 1 auto !important;min-height:0 !important;overflow:hidden !important;display:flex !important}
+  table.st{width:100% !important;height:100% !important;table-layout:fixed !important}
+  table.st thead th{padding:.8vh .3vw !important}
+  table.st thead th:first-child{width:15% !important;font-size:2vh !important}
+  table.st thead th .thd{font-size:min(2.4vh,1.4vw) !important;letter-spacing:0 !important;white-space:nowrap !important}
+  table.st thead th .thdt{font-size:min(2.6vh,1.7vw) !important;letter-spacing:0 !important}
+  table.st tbody td{padding:.3vh .3vw !important;height:auto !important}
+  table.st tbody td:first-child{font-size:2.6vh !important}
+  .erl{font-size:1.4vh !important;padding:.2vh .6vw !important}
+  .shi{display:none !important}
+  .shp{display:flex !important;align-items:center;justify-content:center;text-align:center;width:100%;min-height:5vh;padding:.5vh .4vw;border:1px solid #999;border-radius:1vh;font-weight:800;font-size:min(2.2vh,1.5vw);line-height:1.15;word-break:break-word;color:#000;background:#fff}
+  .shp:empty{border-color:transparent !important;background:transparent !important}
+  .pnotes:has(.pnotes-txt:empty){display:none !important}
+  .pnotes{flex:0 0 auto !important;padding:.8vh 1.5vw !important}
+  .pnotes-lbl{font-size:1.6vh !important}
+  .pnotes-txt{font-size:2vh !important}
+  tr{break-inside:avoid !important;page-break-inside:avoid !important}
   html,body{margin:0 !important}
 }
 
@@ -1615,9 +1644,10 @@ function renderTable(){
       const td=document.createElement('td');
       const inp=document.createElement('input');
       inp.type='text'; inp.className='shi '+shiftClass(val); inp.value=val; inp.placeholder='—'; inp.dataset.key=key;
-      inp.addEventListener('input',function(){ schedData[this.dataset.key]=this.value; this.className='shi '+shiftClass(this.value); updateTotals(); triggerSave(); });
+      const sp=document.createElement('span'); sp.className='shp '+shiftClass(val); sp.textContent=val;
+      inp.addEventListener('input',function(){ schedData[this.dataset.key]=this.value; this.className='shi '+shiftClass(this.value); const s=this.parentNode.querySelector('.shp'); if(s){ s.textContent=this.value; s.className='shp '+shiftClass(this.value); } updateTotals(); triggerSave(); });
       inp.addEventListener('contextmenu',function(e){ e.preventDefault(); ctxCell=this; showCtx(e.clientX,e.clientY); });
-      td.appendChild(inp); tr.appendChild(td);
+      td.appendChild(inp); td.appendChild(sp); tr.appendChild(td);
     }
     tbody.appendChild(tr);
   });
@@ -1693,7 +1723,7 @@ function showCtx(x,y){
 }
 function hideCtx(){ document.getElementById('ctxMenu').classList.remove('on'); }
 function ctxApply(val){
-  if(ctxCell){ ctxCell.value=val; schedData[ctxCell.dataset.key]=val; ctxCell.className='shi '+shiftClass(val); updateTotals(); triggerSave(); }
+  if(ctxCell){ ctxCell.value=val; schedData[ctxCell.dataset.key]=val; ctxCell.className='shi '+shiftClass(val); const s=ctxCell.parentNode.querySelector('.shp'); if(s){ s.textContent=val; s.className='shp '+shiftClass(val); } updateTotals(); triggerSave(); }
   hideCtx();
 }
 document.addEventListener('click',hideCtx);
