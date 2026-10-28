@@ -330,9 +330,34 @@ table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
   table.st tbody td:first-child{font-size:13px !important;color:#000 !important}
   .erl,.erl-full,.erl-part,.erl-manager,.erl-training{background:#e8e8e8 !important;color:#222 !important;border:1px solid #aaa !important}
   .pnotes{display:block !important}
-  @page{size:letter landscape;margin:.5cm 1cm}
-  .sh,table.st tr{break-inside:avoid;page-break-inside:avoid}
-  .sw{width:100% !important}
+  @page{size:landscape;margin:0}
+  html,body{width:100vw !important;height:100vh !important;overflow:hidden !important}
+  #editorScreen{display:block !important;position:fixed !important;inset:0 !important;width:100vw !important;height:100vh !important}
+  .mwrap{display:block !important;height:100vh !important;overflow:hidden !important}
+  .content{padding:1vh 1vw !important;height:100vh !important;overflow:hidden !important}
+  .sw{display:flex !important;flex-direction:column !important;width:100% !important;height:100% !important;min-width:0 !important;overflow:hidden !important}
+  .sh{flex:0 0 auto !important}
+  .sh-in{padding:1.2vh 2vw !important}
+  .sh img{height:6vh !important}
+  .sh-ttl h2{font-size:4vh !important}
+  .sh-ttl .wl{font-size:2.2vh !important}
+  .sh-r .ml{font-size:1.6vh !important}
+  .sh-r .mn{font-size:3.2vh !important}
+  .sh-r .sn{font-size:1.8vh !important}
+  .sw > div[style*="overflow-x"]{flex:1 1 auto !important;min-height:0 !important;overflow:hidden !important;display:flex !important}
+  table.st{width:100% !important;height:100% !important;table-layout:fixed !important}
+  table.st thead th{padding:.8vh .3vw !important}
+  table.st thead th:first-child{width:15% !important;font-size:2vh !important}
+  table.st thead th .thd{font-size:2.6vh !important}
+  table.st thead th .thdt{font-size:2.6vh !important}
+  table.st tbody td{padding:.3vh .3vw !important;height:auto !important}
+  table.st tbody td:first-child{font-size:2.6vh !important}
+  .erl{font-size:1.4vh !important;padding:.2vh .6vw !important}
+  .shi{font-size:2.2vh !important;padding:.6vh .2vw !important;width:100% !important}
+  .pnotes{flex:0 0 auto !important;padding:.8vh 1.5vw !important}
+  .pnotes-lbl{font-size:1.6vh !important}
+  .pnotes-txt{font-size:2vh !important}
+  tr{break-inside:avoid !important;page-break-inside:avoid !important}
   html,body{margin:0 !important}
 }
 
