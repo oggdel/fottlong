@@ -236,6 +236,64 @@ table.st tbody td:first-child{text-align:left;padding-left:12px;background:#f8fd
 .cfm-sub{font-size:12px;color:#999;margin-top:4px}
 .cfm-foot{padding:13px 18px 18px;display:flex;gap:8px;justify-content:flex-end}
 
+.sw{border-radius:14px;border:1px solid #e4e7ec;box-shadow:0 1px 3px rgba(16,24,40,.08),0 14px 36px rgba(16,24,40,.09)}
+.sh{background:linear-gradient(135deg,#0d0f13 0%,#1c212a 100%)}
+.sh-y{width:5px}
+.sh-g{width:5px}
+.sh-in{padding:20px 28px}
+.sh-ttl h2{font-size:20px;font-weight:800;color:#fff;letter-spacing:.8px}
+.sh-ttl .wl{font-size:12px;font-weight:700;color:#FFC600;letter-spacing:.5px;margin-top:5px}
+.sh-r .ml{color:#8a93a3;font-size:9px;letter-spacing:1.6px}
+.sh-r .mn{font-size:16px;font-weight:800}
+.sh-r .sn{color:#8a93a3}
+table.st{border-collapse:separate;border-spacing:0}
+table.st thead tr{background:#f6f7f9}
+table.st thead th{background:#f6f7f9;color:#475467;border-right:none;border-bottom:3px solid #008C15;padding:13px 6px}
+table.st thead th:first-child{background:#f6f7f9;color:#98a2b3;font-size:10px;letter-spacing:1.6px;padding-left:20px;width:170px}
+table.st thead th .thd{font-size:12px;font-weight:800;color:#101828;letter-spacing:1px}
+table.st thead th .thdt{font-size:11px;font-weight:700;color:#008C15;opacity:1;margin-top:3px;letter-spacing:.3px}
+table.st tbody tr{border-bottom:none}
+table.st tbody tr:nth-child(even){background:#fcfcfd}
+table.st tbody tr:hover{background:#f6fbf7}
+table.st tbody td{border-right:none;border-bottom:1px solid #eef0f3;padding:9px 6px}
+table.st tbody td:first-child{background:#fff !important;border-right:1px solid #eef0f3;padding-left:20px;font-size:14px;font-weight:800;color:#101828}
+table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
+.enw{gap:4px;align-items:flex-start}
+.erl{display:inline-block;opacity:1;font-size:9px;font-weight:800;letter-spacing:.8px;padding:3px 9px;border-radius:20px;background:#f2f4f7;color:#475467}
+.erl-full{background:#ecfdf3;color:#067647}
+.erl-part{background:#eff6ff;color:#1d4ed8}
+.erl-manager{background:#fff6d6;color:#8a6500}
+.erl-training{background:#fff1e6;color:#c2410c}
+.shi{border-radius:9px;border:1px solid transparent;padding:9px 6px;font-size:12.5px;font-weight:700;letter-spacing:.2px}
+.shi:hover{background:#f6fbf7;border-color:#008C15}
+.shi:focus{background:#fff;border-color:#008C15;box-shadow:0 0 0 3px rgba(0,140,21,.12)}
+.sh-open{background:#ecfdf3;color:#067647;border-color:#abefc6 !important}
+.sh-mid{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe !important}
+.sh-close{background:#fff4ed;color:#c2410c;border-color:#fed7aa !important}
+.sh-training{background:#fffaeb;color:#b54708;border-color:#fedf89 !important}
+.sh-off{background:#f2f4f7;color:#98a2b3;border-color:#e4e7ec !important}
+.sh-x{background:transparent;color:#d0d5dd;border-color:#eef0f3 !important}
+.totbar{background:linear-gradient(135deg,#0d0f13 0%,#1c212a 100%);padding:14px 24px;border-top:3px solid #FFC600}
+.tstat{padding:0 22px;border-right:1px solid rgba(255,255,255,.1);gap:4px}
+.tstat .tv{font-size:22px}
+.tstat .tl{color:#8a93a3;letter-spacing:1.4px}
+.legbar{background:#fff;border-top:1px solid #eef0f3;padding:11px 20px;gap:16px;font-size:11px;color:#667085;font-weight:600}
+.ld{border-radius:50%;width:11px;height:11px}
+.lh{color:#98a2b3;font-weight:500}
+.sidebar{background:#fafbfc}
+.stitle{color:#667085;font-weight:800}
+.echip{background:#fff;border:1px solid #e4e7ec;border-left:4px solid #98a2b3;border-radius:9px;padding:8px 10px;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:all .12s}
+.echip:hover{border-color:#cfd4dc;box-shadow:0 3px 10px rgba(16,24,40,.08)}
+.echip:has(.rb-full){border-left-color:#12b76a}
+.echip:has(.rb-part){border-left-color:#2e90fa}
+.echip:has(.rb-manager){border-left-color:#FFC600}
+.echip:has(.rb-training){border-left-color:#f79009}
+.rbdg{border:none;padding:3px 8px;letter-spacing:.7px}
+.rb-full{background:#ecfdf3;color:#067647;border:none}
+.rb-part{background:#eff6ff;color:#1d4ed8;border:none}
+.rb-manager{background:#fff6d6;color:#8a6500;border:none}
+.rb-training{background:#fff1e6;color:#c2410c;border:none}
+
 @media print{
   #notesLivePreview{display:none !important}
   .notes-live-preview{display:none !important}
@@ -1539,7 +1597,7 @@ function renderTable(){
     const ntd=document.createElement('td');
     const nw=document.createElement('div'); nw.className='enw';
     const ns=document.createElement('span'); ns.textContent=emp.name;
-    const rs=document.createElement('span'); rs.className='erl'; rs.textContent=rl[emp.role]||emp.role;
+    const rs=document.createElement('span'); rs.className='erl erl-'+emp.role; rs.textContent=rl[emp.role]||emp.role;
     nw.appendChild(ns); nw.appendChild(rs); ntd.appendChild(nw); tr.appendChild(ntd);
     for(let di=0;di<ND;di++){
       const key=emp.id+'_'+di; const val=schedData[key]||'';
