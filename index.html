@@ -330,7 +330,9 @@ table.st tbody tr:hover td:first-child{background:#f6fbf7 !important}
   table.st tbody td:first-child{font-size:13px !important;color:#000 !important}
   .erl,.erl-full,.erl-part,.erl-manager,.erl-training{background:#e8e8e8 !important;color:#222 !important;border:1px solid #aaa !important}
   .pnotes{display:block !important}
-  @page{size:landscape;margin:.5cm 1cm}
+  @page{size:letter landscape;margin:.5cm 1cm}
+  .sh,table.st tr{break-inside:avoid;page-break-inside:avoid}
+  table.st{table-layout:fixed}
   html,body{margin:0 !important}
 }
 
