@@ -2603,5 +2603,94 @@ async function adminOpenSched(id){
 })();
 </script>
 <!-- ===== /FootlongShift upgrade ===== -->
+<!-- ===== FootlongShift email ===== -->
+<style>
+#flsMail{position:fixed;inset:0;z-index:9750;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#flsMail.on{display:flex}
+.fm-card{background:#fff;border-radius:18px;width:480px;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.fm-top{height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)}
+.fm-in{padding:22px 24px;display:flex;flex-direction:column;gap:11px}
+.fm-in h3{font-size:16px;color:#101828}
+.fm-in label{font-size:11px;font-weight:700;color:#667085;margin-bottom:3px;display:block}
+.fm-in input,.fm-in textarea{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+.fm-in input:focus,.fm-in textarea:focus{border-color:#008C15}
+.fm-in textarea{resize:vertical}
+.fm-cnt{font-size:11px;color:#98a2b3;margin-top:3px}
+.fm-res{font-size:12.5px;font-weight:700;min-height:16px;line-height:1.5}
+.fm-foot{display:flex;gap:8px;justify-content:flex-end}
+.fm-foot button{padding:10px 18px;border-radius:9px;border:none;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit}
+.fm-no{background:#f2f4f7;color:#475467}
+.fm-go{background:#008C15;color:#fff}
+.fm-go:disabled{opacity:.6;cursor:wait}
+</style>
+<script>
+(function(){
+  function es(){return typeof currentLang!=='undefined'&&currentLang==='es';}
+  var T={
+    en:{btn:'Send Email',title:'Send email to users',to:'Recipient emails (separate with commas or new lines)',subj:'Subject',msg:'Message',pw:'Your admin password (to confirm)',cnt:' valid email(s)',cancel:'Cancel',send:'Send',sending:'Sending...',noRec:'Add at least one valid email.',noTxt:'Write a subject and a message.',noPw:'Enter your admin password.',ok:'Sent: ',of:' of ',fail:'Failed: '},
+    es:{btn:'Enviar Correo',title:'Enviar correo a usuarios',to:'Correos de destino (separados por comas o renglones)',subj:'Asunto',msg:'Mensaje',pw:'Tu contraseña de admin (para confirmar)',cnt:' correo(s) válido(s)',cancel:'Cancelar',send:'Enviar',sending:'Enviando...',noRec:'Agrega al menos un correo válido.',noTxt:'Escribe un asunto y un mensaje.',noPw:'Escribe tu contraseña de admin.',ok:'Enviados: ',of:' de ',fail:'Fallaron: '}
+  };
+  function t(k){return T[es()?'es':'en'][k];}
+  function g(id){return document.getElementById(id);}
+  function parse(){
+    var raw=g('fmTo').value.split(/[\s,;]+/),seen={},out=[];
+    raw.forEach(function(e){e=e.trim().toLowerCase();if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)&&!seen[e]){seen[e]=1;out.push(e);}});
+    return out;
+  }
+  var bar=document.querySelector('.adm-tb-actions'),b=null;
+  if(bar){
+    b=document.createElement('button');b.className='btn bg bsm';b.id='flsMailBtn';
+    b.addEventListener('click',open);bar.insertBefore(b,bar.firstChild);
+    b.textContent='✉️ '+t('btn');
+    var lb=g('langBtn');if(lb)lb.addEventListener('click',function(){setTimeout(function(){b.textContent='✉️ '+t('btn');},0);});
+  }
+  function build(){
+    var m=document.createElement('div');m.id='flsMail';
+    m.innerHTML='<div class="fm-card"><div class="fm-top"></div><div class="fm-in">'+
+      '<h3 id="fmT"></h3>'+
+      '<div><label id="fmLTo"></label><textarea id="fmTo" rows="3" placeholder="name@gmail.com, other@gmail.com"></textarea><div class="fm-cnt" id="fmCnt"></div></div>'+
+      '<div><label id="fmLS"></label><input id="fmS" type="text" maxlength="120"></div>'+
+      '<div><label id="fmLM"></label><textarea id="fmM" rows="6"></textarea></div>'+
+      '<div><label id="fmLP"></label><input id="fmP" type="password" autocomplete="off"></div>'+
+      '<div class="fm-res" id="fmR"></div>'+
+      '<div class="fm-foot"><button class="fm-no" id="fmNo"></button><button class="fm-go" id="fmGo"></button></div>'+
+      '</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('on');});
+    g('fmNo').onclick=function(){m.classList.remove('on');};
+    g('fmTo').addEventListener('input',function(){g('fmCnt').textContent=parse().length+t('cnt');});
+    g('fmGo').onclick=send;
+  }
+  function open(){
+    if(!g('flsMail'))build();
+    g('fmT').textContent='✉️ '+t('title');g('fmLTo').textContent=t('to');g('fmLS').textContent=t('subj');
+    g('fmLM').textContent=t('msg');g('fmLP').textContent=t('pw');g('fmNo').textContent=t('cancel');g('fmGo').textContent=t('send');
+    g('fmCnt').textContent=parse().length+t('cnt');g('fmR').textContent='';g('fmP').value='';
+    g('flsMail').classList.add('on');
+  }
+  async function send(){
+    var list=parse(),subj=g('fmS').value.trim(),msg=g('fmM').value.trim(),pw=g('fmP').value,R=g('fmR');
+    R.style.color='#cc2200';
+    if(!list.length){R.textContent=t('noRec');return;}
+    if(!subj||!msg){R.textContent=t('noTxt');return;}
+    if(!pw){R.textContent=t('noPw');return;}
+    var go=g('fmGo');go.disabled=true;go.textContent=t('sending');R.style.color='#667085';R.textContent='';
+    try{
+      var r=await sb.functions.invoke('send-email',{body:{username:session.username,password:pw,to:list,subject:subj,message:msg}});
+      var res=r.data;
+      if(r.error){try{res=await r.error.context.json();}catch(e){res={error:r.error.message};}}
+      if(!res||res.error){R.style.color='#cc2200';R.textContent=(res&&res.error)||'Error';}
+      else{
+        var f=res.failed||[];
+        R.style.color=f.length?'#b54708':'#067647';
+        R.textContent='✓ '+t('ok')+res.sent+t('of')+list.length+(f.length?'  ·  '+t('fail')+f.map(function(x){return x.to;}).join(', '):'');
+        if(!f.length){g('fmP').value='';}
+      }
+    }catch(e){R.style.color='#cc2200';R.textContent=String(e.message||e);}
+    go.disabled=false;go.textContent=t('send');g('fmP').value='';
+  }
+})();
+</script>
+<!-- ===== /FootlongShift email ===== -->
 </body>
 </html>
