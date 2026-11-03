@@ -2470,5 +2470,138 @@ async function adminOpenSched(id){
 }
 
 </script>
+<!-- ===== FootlongShift upgrade ===== -->
+<style>
+@media screen{
+  .sw{border-radius:18px;border:1px solid #e3e8ef;box-shadow:0 2px 4px rgba(16,24,40,.04),0 24px 48px -12px rgba(16,24,40,.14)}
+  .sh{background:radial-gradient(120% 220% at 0% 0%,#1f2630 0%,#0b0e13 60%);position:relative}
+  .sh::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)}
+  .sh-y,.sh-g{display:none}
+  .sh-in{padding:22px 30px}
+  .sh-ttl h2{font-size:22px;letter-spacing:.5px}
+  .sh-ttl .wl{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:20px;background:rgba(255,198,0,.12);border:1px solid rgba(255,198,0,.35);font-size:11.5px;color:#FFC600}
+  table.st thead tr,table.st thead th{background:#fff}
+  table.st thead th{border-bottom:2px solid #eaecf0;padding:14px 4px;color:#101828}
+  table.st thead th:first-child{background:#fff;color:#98a2b3;padding-left:22px}
+  table.st thead th .thd{font-size:12px;letter-spacing:1.4px;color:#667085;font-weight:800}
+  table.st thead th .thdt{display:inline-block;margin-top:6px;padding:3px 11px;border-radius:20px;background:#101828;color:#FFC600;font-size:13px;font-weight:800;opacity:1;letter-spacing:.3px}
+  table.st tbody td{padding:8px 5px;border-bottom:1px solid #f0f2f5}
+  table.st tbody tr:nth-child(even){background:#fafbfc}
+  table.st tbody td:first-child{padding-left:20px;font-size:15px;font-weight:800;color:#101828;box-shadow:inset 4px 0 0 #d0d5dd}
+  table.st tbody tr:has(.erl-full) td:first-child{box-shadow:inset 4px 0 0 #12b76a}
+  table.st tbody tr:has(.erl-part) td:first-child{box-shadow:inset 4px 0 0 #2e90fa}
+  table.st tbody tr:has(.erl-manager) td:first-child{box-shadow:inset 4px 0 0 #FFC600}
+  table.st tbody tr:has(.erl-training) td:first-child{box-shadow:inset 4px 0 0 #f79009}
+  .erl,.rbdg{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:6px;font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border:1px solid transparent;opacity:1}
+  .erl::before,.rbdg::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+  .erl-full,.rb-full{background:#ecfdf3;color:#067647;border-color:#abefc6}
+  .erl-part,.rb-part{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+  .erl-manager,.rb-manager{background:#fff8dc;color:#8a6500;border-color:#ffe08a}
+  .erl-training,.rb-training{background:#fff1e6;color:#c2410c;border-color:#fed7aa}
+  .erl-manager::before,.rb-manager::before{content:'★';width:auto;height:auto;background:none;font-size:10px}
+  .shi{height:42px;border-radius:12px;font-size:14.5px;font-weight:700}
+  .shi.sh-open{box-shadow:inset 4px 0 0 #12b76a}
+  .shi.sh-mid{box-shadow:inset 4px 0 0 #2e90fa}
+  .shi.sh-close{box-shadow:inset 4px 0 0 #f97316}
+  .shi.sh-training{box-shadow:inset 4px 0 0 #f79009}
+  .shi.sh-off{box-shadow:inset 4px 0 0 #d0d5dd}
+}
+#flsAiBtn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid #555;background:transparent;color:#aaa;font-family:inherit;letter-spacing:.5px}
+#flsAiBtn.on{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border-color:transparent}
+#flsAi{position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#flsAi.on{display:flex}
+.fls-card{background:#fff;border-radius:18px;width:420px;max-width:93vw;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.fls-top{height:6px;background:linear-gradient(90deg,#7c3aed,#2563eb,#12b76a)}
+.fls-body{padding:24px 24px 8px;text-align:center}
+.fls-badge{display:inline-block;padding:4px 12px;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+.fls-body h3{font-size:18px;color:#101828;margin:12px 0 6px}
+.fls-body p{font-size:13px;color:#667085;line-height:1.6}
+.fls-ex{margin:14px 0 4px;padding:12px;background:#f6f7f9;border-radius:10px;font-size:14px;font-weight:700;color:#101828;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+.fls-ex span{color:#98a2b3;font-weight:600}
+.fls-ex b{color:#7c3aed}
+.fls-foot{padding:14px 22px 20px;display:flex;gap:8px;justify-content:flex-end}
+.fls-foot button{padding:10px 18px;border-radius:9px;border:none;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit}
+.fls-no{background:#f2f4f7;color:#475467}
+.fls-yes{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff}
+</style>
+<script>
+(function(){
+  var KEY='fls_ai_format';
+  function on(){return localStorage.getItem(KEY)==='1';}
+  function es(){return typeof currentLang!=='undefined'&&currentLang==='es';}
+  function fmt(v){
+    var s=String(v||'').replace(/\s+/g,' ').trim();
+    if(!s)return s;
+    s=s.replace(/\s*[-–—]\s*/g,' - ');
+    s=s.replace(/(\d(?::\d{2})?(?:\s?[ap]m)?)\s*to\s*(?=\w)/gi,'$1 to ');
+    s=s.replace(/\b(open|close|off|training)\b/gi,function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();});
+    return s.trim();
+  }
+  document.addEventListener('change',function(e){
+    var el=e.target;
+    if(!on()||!el.classList||!el.classList.contains('shi'))return;
+    var nv=fmt(el.value);
+    if(nv===el.value)return;
+    el.value=nv;
+    schedData[el.dataset.key]=nv;
+    el.className='shi '+shiftClass(nv);
+    var s=el.parentNode.querySelector('.shp');
+    if(s){s.textContent=nv;s.className='shp '+shiftClass(nv);}
+    updateTotals();triggerSave();
+  });
+  function paintBtn(){
+    var b=document.getElementById('flsAiBtn');if(!b)return;
+    b.className=on()?'on':'';
+    b.textContent='✨ AI '+(on()?'ON':'OFF');
+  }
+  function setAi(v){
+    localStorage.setItem(KEY,v?'1':'0');paintBtn();
+    showToast(v?(es()?'FootlongShift AI activada ✓':'FootlongShift AI enabled ✓'):(es()?'FootlongShift AI apagada':'FootlongShift AI turned off'));
+  }
+  var bar=document.querySelector('.etb > div:last-child');
+  if(bar){
+    var btn=document.createElement('button');
+    btn.id='flsAiBtn';btn.title='FootlongShift AI';
+    btn.addEventListener('click',function(){setAi(!on());});
+    bar.insertBefore(btn,bar.firstChild);
+    paintBtn();
+  }
+  function offer(){
+    var m=document.getElementById('flsAi');
+    if(!m){
+      m=document.createElement('div');m.id='flsAi';
+      m.innerHTML='<div class="fls-card"><div class="fls-top"></div><div class="fls-body">'+
+        '<span class="fls-badge">✨ FootlongShift AI</span><h3 id="flsT"></h3><p id="flsP"></p>'+
+        '<div class="fls-ex">3-4 <span>→</span> <b>3 - 4</b> &nbsp;·&nbsp; close <span>→</span> <b>Close</b></div></div>'+
+        '<div class="fls-foot"><button class="fls-no" id="flsNo"></button><button class="fls-yes" id="flsYes"></button></div></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('on');});
+      document.getElementById('flsNo').onclick=function(){m.classList.remove('on');};
+      document.getElementById('flsYes').onclick=function(){m.classList.remove('on');setAi(true);};
+    }
+    document.getElementById('flsT').textContent=es()?'¿Quieres que la IA ordene tus horarios?':'Want AI to organize your schedules?';
+    document.getElementById('flsP').textContent=es()
+      ?'La IA de FootlongShift acomoda automáticamente lo que escribas en cada turno: espacios, guiones y nombres, para que todo se vea más limpio y profesional.'
+      :'FootlongShift AI automatically tidies whatever you type in each shift: spacing, dashes and names, so everything looks cleaner and more professional.';
+    document.getElementById('flsNo').textContent=es()?'Ahora no':'Not now';
+    document.getElementById('flsYes').textContent=es()?'Sí, activar':'Yes, turn on';
+    m.classList.add('on');
+  }
+  window.clearAll=function(){
+    swConfirm({icon:'🧹',badge:es()?'Borrar Horario':'Clear Schedule',
+      msg:es()?'¿Borrar todos los turnos de esta semana?':'Clear all shifts for this week?',
+      sub:es()?'Los empleados se mantienen.':'Employees stay — only shifts removed.',
+      okLabel:es()?'Sí, Borrar Todo':'Yes, Clear All',okColor:'#cc2200',
+      onOk:function(){
+        schedData={};renderTable();
+        showToast(es()?'Turnos borrados.':'Shifts cleared.');
+        triggerSave();
+        if(!on())setTimeout(offer,400);
+      }
+    });
+  };
+})();
+</script>
+<!-- ===== /FootlongShift upgrade ===== -->
 </body>
 </html>
