@@ -2694,8 +2694,15 @@ async function adminOpenSched(id){
 <!-- ===== /FootlongShift email ===== -->
 <!-- ===== FootlongShift requests ===== -->
 <style>
-#flsReq,#flsStaff,#flsInbox{position:fixed;inset:0;z-index:9550;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:12px}
-#flsReq.on,#flsStaff.on,#flsInbox.on{display:flex}
+#flsReq,#flsStaff,#flsInbox,#flsAlert{position:fixed;inset:0;z-index:9550;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:12px}
+#flsReq.on,#flsStaff.on,#flsInbox.on,#flsAlert.on{display:flex}
+#flsAlert{z-index:9580}
+.fq-float{position:fixed;left:18px;bottom:20px;z-index:7000;background:#FFC600;color:#101828;border:none;border-radius:30px;padding:12px 18px;font-weight:800;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none}
+.fq-float:hover{background:#ffd633}
+.fq-note{background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:700;line-height:1.5}
+.fq-note.w{background:#fff6d6;color:#8a6500}
+.fq-cf{background:#fff6d6;border-radius:9px;padding:8px 11px;font-size:12.5px;line-height:1.5}
+.fq-cf b{color:#101828}
 .fq-card{background:#fff;border-radius:18px;width:500px;max-width:100%;max-height:94vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.4);font-family:'Segoe UI',Arial,sans-serif;color:#101828}
 .fq-card.fq-wide{width:720px}
 .fq-top{height:6px;background:linear-gradient(90deg,#FFC600 50%,#008C15 50%)}
@@ -2760,7 +2767,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
 .fq-open{background:#fff;color:#008C15;border:2px solid #008C15;padding:11px;border-radius:8px;font-weight:800;font-size:13px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .15s}
 .fq-open:hover{background:#008C15;color:#fff}
 @media(max-width:520px){.fq-r2{flex-direction:column;align-items:stretch}.fq-tw{flex:1}.fq-add{flex-wrap:wrap}}
-@media print{#flsReq,#flsStaff,#flsInbox,#flsInboxCard{display:none !important}}
+@media print{#flsReq,#flsStaff,#flsInbox,#flsAlert,#flsInboxCard,.fq-float{display:none !important}}
 </style>
 <script>
 (function(){
@@ -2775,7 +2782,14 @@ textarea.fq-i{resize:vertical;min-height:84px}
       staffBtn:'Staff Requests',mgrTitle:'Staff & requests',tabStaff:'Staff',tabRoute:'Who receives',namePh:'Name',codePh:'Code',add:'Add',noStaff:'No staff yet.',del:'Delete',recv:'receiver(s)',noRecv:'No receiver',
       delQ:'Delete this person?',delSub:'Their code stops working and their old requests are hidden.',delOk:'Yes, Delete',needName:'Enter a name.',needCode:'Enter a code.',codeUsed:'That code is already in use.',
       routeIntro:'Pick the account that will receive requests, then choose which staff codes go to it.',pickRecv:'Account that receives',save:'Save',saved:'Saved ✓',selAll:'Select all',selNone:'None',addedOk:'Added ✓',deletedOk:'Deleted.',
-      inTitle:'Requests',inP:'Requests from your staff.',inEmpty:'No requests yet.',approve:'Approve',deny:'Deny',pending:'Pending',approved:'Approved',denied:'Denied',reasonLbl:'Reason',refresh:'Refresh',loading:'Loading...',sentOn:'Sent'},
+      inTitle:'Requests',inP:'Requests from your staff.',inEmpty:'No requests yet.',approve:'Approve',deny:'Deny',pending:'Pending',approved:'Approved',denied:'Denied',reasonLbl:'Reason',refresh:'Refresh',loading:'Loading...',sentOn:'Sent',fBtn:'Requests',applyingTo:'Days will be placed in:',openFirst:'Open the schedule where you want these days, then press Approve.',okBtn:'OK',cancelBtn:'Cancel',reset:'Back to pending',
+      aNoSchedT:'Open a schedule first',aNoSchedP:'Approve places the requested days directly into the schedule. Open the schedule you want (Create Schedule or My Schedules), then open Requests from inside it and press Approve.',
+      aNoWeekT:'This schedule has no week date',aNoWeekP:'Set the "Week Start" date of the schedule first so the days can be matched.',
+      aNotFoundT:'Not found in this schedule',aNotFoundP:'No employee in this schedule matches the name "{n}". Add them to the schedule with the same name, then press Approve again.',aNotFoundL:'Employees in this schedule',
+      aFarT:'Those days are not in this week',aFarP:'None of the requested days fall inside the week of this schedule. Open the schedule of the right week and press Approve again.',
+      aConfT:'Some days are already filled',aConfP:'These cells already have something. Replace only these cells with the request, or cancel and edit them yourself. Nothing else in the schedule is touched.',replace:'Replace these days',
+      okDone:'Placed in the schedule ✓',okPart:'Placed ✓. {n} day(s) belong to another week: open that schedule and press Approve again.',placedMark:'placed',
+      lateW:'Late',leaveW:'Leave',earlyW:'Early'},
     es:{openBtn:'Enviar una solicitud',reqTitle:'Enviar una solicitud',codeHint:'Escribe el código personal que te dio tu gerente.',code:'Tu código',cont:'Continuar',cancel:'Cancelar',enterCode:'Escribe tu código.',notFound:'Código no encontrado. Revísalo e intenta de nuevo.',
       isCorrect:'¿Es correcta esta información?',yes:'Sí, soy yo',no:'No, no soy yo',
       formHint:'Elige lo que necesitas y el/los día(s).',tOff:'Día libre',tLate:'Llegar tarde',tLeave:'Salir temprano',tEarly:'Entrar temprano',tOther:'Otro',lArrive:'Llegar a las',lLeave:'Salir a las',notePh:'Describe tu solicitud',addDay:'+ Agregar otro día',
@@ -2784,7 +2798,14 @@ textarea.fq-i{resize:vertical;min-height:84px}
       staffBtn:'Solicitudes del Personal',mgrTitle:'Personal y solicitudes',tabStaff:'Personal',tabRoute:'Quién recibe',namePh:'Nombre',codePh:'Código',add:'Agregar',noStaff:'Aún no hay personal.',del:'Eliminar',recv:'receptor(es)',noRecv:'Sin receptor',
       delQ:'¿Eliminar a esta persona?',delSub:'Su código deja de funcionar y sus solicitudes viejas se ocultan.',delOk:'Sí, Eliminar',needName:'Escribe un nombre.',needCode:'Escribe un código.',codeUsed:'Ese código ya está en uso.',
       routeIntro:'Elige la cuenta que recibirá las solicitudes y luego qué códigos del personal le llegan.',pickRecv:'Cuenta que recibe',save:'Guardar',saved:'Guardado ✓',selAll:'Todos',selNone:'Ninguno',addedOk:'Agregado ✓',deletedOk:'Eliminado.',
-      inTitle:'Solicitudes',inP:'Solicitudes de tu personal.',inEmpty:'Aún no hay solicitudes.',approve:'Aprobar',deny:'Rechazar',pending:'Pendiente',approved:'Aprobada',denied:'Rechazada',reasonLbl:'Motivo',refresh:'Actualizar',loading:'Cargando...',sentOn:'Enviada'}
+      inTitle:'Solicitudes',inP:'Solicitudes de tu personal.',inEmpty:'Aún no hay solicitudes.',approve:'Aprobar',deny:'Rechazar',pending:'Pendiente',approved:'Aprobada',denied:'Rechazada',reasonLbl:'Motivo',refresh:'Actualizar',loading:'Cargando...',sentOn:'Enviada',fBtn:'Solicitudes',applyingTo:'Los días se pondrán en:',openFirst:'Abre el horario donde quieres estos días y luego presiona Aprobar.',okBtn:'OK',cancelBtn:'Cancelar',reset:'Volver a pendiente',
+      aNoSchedT:'Primero abre un horario',aNoSchedP:'Aprobar pone los días pedidos directamente en el horario. Abre el horario que quieras (Create Schedule o My Schedules), abre Solicitudes desde adentro y presiona Aprobar.',
+      aNoWeekT:'Este horario no tiene fecha de semana',aNoWeekP:'Primero pon la fecha de "Week Start" del horario para poder ubicar los días.',
+      aNotFoundT:'No está en este horario',aNotFoundP:'Ningún empleado de este horario coincide con el nombre "{n}". Agrégalo al horario con el mismo nombre y presiona Aprobar otra vez.',aNotFoundL:'Empleados en este horario',
+      aFarT:'Esos días no están en esta semana',aFarP:'Ninguno de los días pedidos cae en la semana de este horario. Abre el horario de la semana correcta y presiona Aprobar otra vez.',
+      aConfT:'Algunos días ya tienen algo',aConfP:'Estas casillas ya tienen algo. Puedes reemplazar solo estas casillas con la solicitud, o cancelar y editarlas tú. Nada más del horario se toca.',replace:'Reemplazar estos días',
+      okDone:'Puesto en el horario ✓',okPart:'Puesto ✓. {n} día(s) son de otra semana: abre ese horario y presiona Aprobar otra vez.',placedMark:'puesto',
+      lateW:'Tarde',leaveW:'Salir',earlyW:'Temprano'}
   };
   function t(k){var d=T[es()?'es':'en'];return d[k]!=null?d[k]:(T.en[k]||k);}
   function g(id){return document.getElementById(id);}
@@ -2922,7 +2943,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
       var c=await sb.from('sw_users').select('id,first_name,last_name,username').order('created_at');
       var er=a.error||b.error||c.error;if(er)throw er;
       M.staff=a.data||[];M.routes=b.data||[];M.users=c.data||[];
-      if(!M.recv&&M.users.length)M.recv=String(M.users[0].id);
+      if(!M.recv&&M.users.length)M.recv=M.users[0].id;
       renderMgr();
     }catch(e){g('flsStaffBody').innerHTML=head(t('mgrTitle'))+'<div class="fq-err">'+esc(e.message||e)+'</div>';bindX('flsStaff');}
   }
@@ -2943,7 +2964,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
     }else{
       h+='<p class="fq-p">'+esc(t('routeIntro'))+'</p>';
       h+='<div><label class="fq-l">'+esc(t('pickRecv'))+'</label><select id="fmRecv" class="fq-i">';
-      M.users.forEach(function(u){h+='<option value="'+esc(String(u.id))+'"'+(String(u.id)===M.recv?' selected':'')+'>'+esc(uname(u))+'</option>';});
+      M.users.forEach(function(u){h+='<option value="'+esc(u.id)+'"'+(u.id===M.recv?' selected':'')+'>'+esc(uname(u))+'</option>';});
       h+='</select></div>';
       var mine={};M.routes.forEach(function(r){if(r.receiver_id===M.recv)mine[r.staff_id]=1;});
       h+='<div class="fq-list">';
@@ -2988,7 +3009,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
     var btn=g('fmSave');btn.disabled=true;
     try{
       var d=await sb.from('sw_request_routes').delete().eq('receiver_id',M.recv);if(d.error)throw d.error;
-      if(ids.length){var ins=await sb.from('sw_request_routes').insert(ids.map(function(s){return {receiver_id:String(M.recv),staff_id:s};}));if(ins.error)throw ins.error;}
+      if(ids.length){var ins=await sb.from('sw_request_routes').insert(ids.map(function(s){return {receiver_id:M.recv,staff_id:s};}));if(ins.error)throw ins.error;}
       toast(t('saved'));await loadMgr();
     }catch(x){e.textContent=String(x.message||x);btn.disabled=false;}
   }
@@ -3000,7 +3021,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
   }
 
   /* ══════ RECEIVER: INBOX ══════ */
-  var IN={list:[],loaded:false};
+  var IN={list:[],loaded:false},isRecv=false,recvKnown=false;
   var cards=document.querySelector('#dashScreen .cards'),inCard=null,pendingN=0;
   if(cards){
     inCard=document.createElement('div');inCard.className='card';inCard.id='flsInboxCard';inCard.style.display='none';
@@ -3015,8 +3036,11 @@ textarea.fq-i{resize:vertical;min-height:84px}
   async function checkInbox(){
     if(!inCard||typeof session==='undefined'||!session)return;
     try{
-      var r=await sb.from('sw_request_routes').select('staff_id').eq('receiver_id',String(session.id));
-      if(r.error||!r.data||!r.data.length){inCard.style.display='none';return;}
+      var r=await sb.from('sw_request_routes').select('staff_id').eq('receiver_id',session.id);
+      if(r.error){return;}
+      recvKnown=true;
+      if(!r.data||!r.data.length){isRecv=false;inCard.style.display='none';return;}
+      isRecv=true;
       var ids=r.data.map(function(x){return x.staff_id;});
       var p=await sb.from('sw_requests').select('id',{count:'exact',head:true}).in('staff_id',ids).eq('status','pending');
       pendingN=p.count||0;inCard.style.display='block';paintCard();
@@ -3024,7 +3048,11 @@ textarea.fq-i{resize:vertical;min-height:84px}
   }
   var _sd=window.showDash;
   if(typeof _sd==='function'){window.showDash=function(){var r=_sd.apply(this,arguments);checkInbox();return r;};}
-  setInterval(function(){var d=g('dashScreen');if(d&&d.classList.contains('on'))checkInbox();},60000);
+  setInterval(function(){if(typeof session!=='undefined'&&session)checkInbox();},60000);
+  var fl=document.createElement('button');fl.type='button';fl.className='fq-float';fl.id='flsEdReq';
+  fl.addEventListener('click',openInbox);document.body.appendChild(fl);
+  function paintFloat(){fl.innerHTML='📥 '+esc(t('fBtn'))+(pendingN?'<span class="fq-bdg">'+pendingN+'</span>':'');}
+  setInterval(function(){if(!recvKnown&&editorOn())checkInbox();fl.style.display=(isRecv&&editorOn())?'block':'none';paintFloat();},1200);
 
   async function openInbox(){
     shell('flsInbox',true);
@@ -3034,7 +3062,7 @@ textarea.fq-i{resize:vertical;min-height:84px}
   }
   async function loadInbox(){
     try{
-      var r=await sb.from('sw_request_routes').select('staff_id').eq('receiver_id',String(session.id));
+      var r=await sb.from('sw_request_routes').select('staff_id').eq('receiver_id',session.id);
       if(r.error)throw r.error;
       var ids=(r.data||[]).map(function(x){return x.staff_id;});
       IN.list=[];
@@ -3048,22 +3076,109 @@ textarea.fq-i{resize:vertical;min-height:84px}
   }
   function renderInbox(){
     var b=g('flsInboxBody');if(!b)return;
-    var h=head(t('inTitle'),t('inP'))+'<div class="fq-foot" style="justify-content:flex-start"><button class="fq-b fq-no" id="fiRef" type="button">↻ '+esc(t('refresh'))+'</button></div><div class="fq-list">';
+    var ed=editorOn();
+    var h=head(t('inTitle'),t('inP'))+(ed?'<div class="fq-note">'+esc(t('applyingTo'))+' <b>'+esc((g('hdrTitle')&&g('hdrTitle').textContent)||'')+'</b></div>':'<div class="fq-note w">'+esc(t('openFirst'))+'</div>')+'<div class="fq-foot" style="justify-content:flex-start"><button class="fq-b fq-no" id="fiRef" type="button">↻ '+esc(t('refresh'))+'</button></div><div class="fq-list">';
     if(!IN.list.length)h+='<p class="fq-p" style="text-align:center;padding:24px 0">'+esc(t('inEmpty'))+'</p>';
     IN.list.forEach(function(x){
       var items=(Array.isArray(x.items)?x.items:[]).map(function(it){
         var o=itemText(it);
-        return '<div class="fq-chip"><b>'+esc(o.label)+'</b> · '+esc(o.date)+(o.time?' · '+esc(o.time):'')+(o.note?' · '+esc(o.note):'')+'</div>';
+        return '<div class="fq-chip"><b>'+esc(o.label)+'</b> · '+esc(o.date)+(o.time?' · '+esc(o.time):'')+(o.note?' · '+esc(o.note):'')+(it.applied?' · <span style="color:#067647">✓ '+esc(t('placedMark'))+'</span>':'')+'</div>';
       }).join('');
       var s=x.status||'pending';
       h+='<div class="fq-rq"><div class="fq-rqh"><div class="fq-av">'+esc((x.staff_name||'?').charAt(0).toUpperCase())+'</div><div><div class="fq-nm">'+esc(x.staff_name)+'</div><div class="fq-cd">'+esc(t('codeLbl'))+' '+esc(x.staff_code)+' · '+esc(t('sentOn'))+' '+esc(fmtStamp(x.created_at))+'</div></div><span class="fq-st '+esc(s)+'">'+esc(t(s))+'</span></div>'+
         '<div class="fq-it">'+items+'</div><div class="fq-rs"><small>'+esc(t('reasonLbl'))+'</small>'+esc(x.reason)+'</div>'+
-        '<div class="fq-foot"><button class="fq-b fq-red" data-st="denied" data-id="'+esc(x.id)+'" type="button">'+esc(t('deny'))+'</button><button class="fq-b fq-go" data-st="approved" data-id="'+esc(x.id)+'" type="button">'+esc(t('approve'))+'</button></div></div>';
+        '<div class="fq-foot">'+(s==='pending'?'<button class="fq-b fq-red" data-st="denied" data-id="'+esc(x.id)+'" type="button">'+esc(t('deny'))+'</button><button class="fq-b fq-go" data-ap="'+esc(x.id)+'" type="button">'+esc(t('approve'))+'</button>':'<button class="fq-b fq-no" data-st="pending" data-id="'+esc(x.id)+'" type="button">'+esc(t('reset'))+'</button>')+'</div></div>';
     });
     h+='</div>';b.innerHTML=h;bindX('flsInbox');
     g('fiRef').onclick=loadInbox;
     var bs=b.querySelectorAll('[data-st]');
     for(var i=0;i<bs.length;i++){bs[i].onclick=function(){setStatus(this.getAttribute('data-id'),this.getAttribute('data-st'));};}
+    var aps=b.querySelectorAll('[data-ap]');
+    for(var k=0;k<aps.length;k++){aps[k].onclick=function(){approve(this.getAttribute('data-ap'));};}
+  }
+
+  /* ══════ APPROVE -> PLACE DAYS IN THE OPEN SCHEDULE ══════ */
+  function editorOn(){
+    var e=g('editorScreen');
+    try{return !!(e&&e.classList.contains('on')&&currentSchedId);}catch(x){return false;}
+  }
+  function norm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+  function findEmp(name){
+    var n=norm(name),list=(typeof employees!=='undefined'&&employees)?employees:[];
+    var i,ex=list.filter(function(e){return norm(e.name)===n;});
+    if(ex.length===1)return ex[0];
+    var part=list.filter(function(e){var en=norm(e.name);return en&&n&&(en.indexOf(n+' ')===0||n.indexOf(en+' ')===0||(' '+en+' ').indexOf(' '+n+' ')>-1||(' '+n+' ').indexOf(' '+en+' ')>-1);});
+    if(part.length===1)return part[0];
+    var f=n.split(' ')[0];
+    var fe=list.filter(function(e){return norm(e.name).split(' ')[0]===f;});
+    if(fe.length===1&&!ex.length&&!part.length)return fe[0];
+    return null;
+  }
+  function dayIdx(ws,d){
+    var a=Date.UTC.apply(null,ws.split('-').map(function(v,i){return i===1?v-1:+v;}));
+    var c=Date.UTC.apply(null,d.split('-').map(function(v,i){return i===1?v-1:+v;}));
+    return Math.round((c-a)/86400000);
+  }
+  function cellText(it){
+    if(it.type==='off')return 'OFF';
+    if(it.type==='other')return (it.note||'').trim();
+    var w=it.type==='late'?t('lateW'):it.type==='leave'?t('leaveW'):t('earlyW');
+    return w+' '+fmtTime(it.time);
+  }
+  function alertBox(o){
+    shell('flsAlert');
+    var h=head(o.title)+'<p class="fq-p">'+o.msg+'</p>'+(o.extra||'')+'<div class="fq-foot">';
+    (o.buttons||[{label:t('okBtn'),cls:'fq-go'}]).forEach(function(bt,i){h+='<button class="fq-b '+bt.cls+'" data-bi="'+i+'" type="button">'+esc(bt.label)+'</button>';});
+    h+='</div>';
+    g('flsAlertBody').innerHTML=h;bindX('flsAlert');
+    var bs=g('flsAlertBody').querySelectorAll('[data-bi]');
+    for(var i=0;i<bs.length;i++){bs[i].onclick=function(){var bt=(o.buttons||[{}])[+this.getAttribute('data-bi')];g('flsAlert').classList.remove('on');if(bt&&bt.fn)bt.fn();};}
+    g('flsAlert').classList.add('on');
+  }
+  async function approve(id){
+    var rq=null;for(var q=0;q<IN.list.length;q++){if(String(IN.list[q].id)===String(id))rq=IN.list[q];}
+    if(!rq)return;
+    if(!editorOn()){alertBox({title:t('aNoSchedT'),msg:esc(t('aNoSchedP'))});return;}
+    var ws=g('weekStart')&&g('weekStart').value;
+    if(!ws){alertBox({title:t('aNoWeekT'),msg:esc(t('aNoWeekP'))});return;}
+    var emp=findEmp(rq.staff_name);
+    if(!emp){
+      var names=(employees||[]).map(function(e){return esc(e.name);}).join(', ')||'—';
+      alertBox({title:t('aNotFoundT'),msg:esc(t('aNotFoundP').replace('{n}',rq.staff_name)),extra:'<div class="fq-note"><b>'+esc(t('aNotFoundL'))+':</b> '+names+'</div>'});
+      return;
+    }
+    var items=(Array.isArray(rq.items)?rq.items:[]).map(function(it){var c={};for(var k in it)c[k]=it[k];return c;});
+    var plan=[],later=0;
+    items.forEach(function(it,i){
+      if(it.applied)return;
+      var di=dayIdx(ws,it.date);
+      if(isNaN(di)||di<0||di>=ND){later++;return;}
+      plan.push({i:i,it:it,di:di,key:emp.id+'_'+di,val:cellText(it)});
+    });
+    if(!plan.length){
+      if(later){alertBox({title:t('aFarT'),msg:esc(t('aFarP'))});return;}
+      await commitStatus(rq,items,0);return;
+    }
+    var conf=plan.filter(function(p){var cur=String(schedData[p.key]||'').trim();return cur&&cur.toLowerCase()!==p.val.toLowerCase();});
+    if(conf.length){
+      var lst=conf.map(function(p){return '<div class="fq-cf"><b>'+esc(fmtDate(p.it.date))+'</b> · '+esc(emp.name)+': «'+esc(String(schedData[p.key]).trim())+'» → «'+esc(p.val)+'»</div>';}).join('');
+      alertBox({title:t('aConfT'),msg:esc(t('aConfP')),extra:'<div class="fq-list">'+lst+'</div>',buttons:[{label:t('cancelBtn'),cls:'fq-no'},{label:t('replace'),cls:'fq-go',fn:function(){place(rq,items,plan,later);}}]});
+      return;
+    }
+    place(rq,items,plan,later);
+  }
+  async function place(rq,items,plan,later){
+    plan.forEach(function(p){schedData[p.key]=p.val;items[p.i].applied=true;});
+    try{renderTable();}catch(e){}
+    try{triggerSave();}catch(e){}
+    await commitStatus(rq,items,later);
+  }
+  async function commitStatus(rq,items,later){
+    var all=items.every(function(x){return x.applied;});
+    var r=await sb.from('sw_requests').update({items:items,status:all?'approved':'pending'}).eq('id',rq.id);
+    if(r.error){toast(r.error.message);return;}
+    toast(later?t('okPart').replace('{n}',later):t('okDone'));
+    await loadInbox();
   }
   async function setStatus(id,s){
     var r=await sb.from('sw_requests').update({status:s}).eq('id',id);
