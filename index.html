@@ -3175,13 +3175,13 @@ textarea.fq-i{resize:vertical;min-height:84px}
   }
   async function commitStatus(rq,items,later){
     var all=items.every(function(x){return x.applied;});
-    var r=await sb.from('sw_requests').update({items:items,status:all?'approved':'pending'}).eq('id',rq.id);
+    var r=all?await sb.from('sw_requests').delete().eq('id',rq.id):await sb.from('sw_requests').update({items:items,status:'pending'}).eq('id',rq.id);
     if(r.error){toast(r.error.message);return;}
     toast(later?t('okPart').replace('{n}',later):t('okDone'));
     await loadInbox();
   }
   async function setStatus(id,s){
-    var r=await sb.from('sw_requests').update({status:s}).eq('id',id);
+    var r=s==='denied'?await sb.from('sw_requests').delete().eq('id',id):await sb.from('sw_requests').update({status:s}).eq('id',id);
     if(r.error){toast(r.error.message);return;}
     await loadInbox();
   }
